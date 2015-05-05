@@ -25,6 +25,7 @@
     <ClInclude Include="HashExtensions.h" />
     <ClInclude Include="IAutomaton.h" />
     <ClInclude Include="IFunction.h" />
+    <ClInclude Include="Interop.h" />
     <ClInclude Include="IRegex.h" />
     <ClInclude Include="LambdaFunction.h" />
     <ClInclude Include="LinearSet.h" />
@@ -42,7 +43,7 @@
     <ClInclude Include="UnionRegex.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Automata.cpp" />
+    <ClCompile Include="Interop.cpp" />
     <ClCompile Include="AutomatonDotPrinter.cpp" />
     <ClCompile Include="AutomatonParser.cpp" />
     <ClCompile Include="ClosureRegex.cpp" />
@@ -62,17 +63,19 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>true</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <CLRSupport>true</CLRSupport>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

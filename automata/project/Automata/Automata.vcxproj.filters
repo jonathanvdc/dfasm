@@ -102,11 +102,11 @@
     <ClInclude Include="RegexParser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Interop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Automata.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="AutomatonParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -138,6 +138,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DFAtoRE.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Interop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
