@@ -1,0 +1,44 @@
+enfa
+start G
+accepts
+transitions
+G g B
+I g G
+H g E
+H -> F
+E -> I
+A g B
+D h F
+I -> C
+E z I
+A h B
+G -> B
+G g G
+C -> H
+H z B
+E h F
+D h G
+I -> G
+A z D
+E z H
+H -> B
+H -> D
+H h D
+G -> B
+G g A
+H h C
+D -> I
+E g G
+E -> G
+E z D
+C z D
+E h F
+B h C
+C -> C
+C z G
+F -> D
+I z D
+H z I
+B g H
+H z A
+

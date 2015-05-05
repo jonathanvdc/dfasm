@@ -1,0 +1,16 @@
+dfa
+start {a,b,c}
+accepts {a,b,c} {c} {b,c}
+transitions
+{c} b {}
+{b,c} b {b,c}
+{a,b,c} a {a,b,c}
+{c} a {}
+{b,c} a {}
+{a,b,c} b {b,c}
+{a,b,c} c {c}
+{} b {}
+{c} c {c}
+{} a {}
+{b,c} c {c}
+{} c {}

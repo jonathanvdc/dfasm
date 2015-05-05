@@ -1,0 +1,17 @@
+enfa
+start B
+accepts
+transitions
+B l E
+C -> D
+D k E
+A l A
+D k A
+A k A
+B -> A
+D l B
+E l A
+C l D
+D -> D
+D -> A
+

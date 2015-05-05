@@ -1,0 +1,36 @@
+public struct Optional<T>
+{
+    public const this(set T Value) { HasValue = true; }
+    public const this() { HasValue = false; }
+    
+    public bool HasValue;
+    public T Value;
+    
+    public const bool operator==(Optional<T> Other)
+    {
+        if (HasValue)
+        {
+            return Other.HasValue && Value == Other.Value;
+        }
+        else return !Other.HasValue;
+    }
+    public const bool operator==(T Other)
+    {
+        return this.HasValue && this.Value == Other;
+    }
+    public const bool operator!=(Optional<T> Other)
+    {
+        if (!HasValue)
+        {
+            return Other.HasValue;
+        }
+        else
+        {
+            return !Other.HasValue || Value != Other.Value;
+        }
+    }
+    public const bool operator!=(T Other)
+    {
+        return !this.HasValue || this.Value == Other;
+    }
+}

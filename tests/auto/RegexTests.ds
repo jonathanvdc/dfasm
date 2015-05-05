@@ -1,0 +1,189 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
+
+namespace Automata
+{
+    public static class RegexTests
+    {
+        public const RegexTestCase GenerateRegex(Random rand, char[] alpha, int maxStates)
+        {
+            var result = new RegexTestCase(AutoTests.GetRandomElement<char>(alpha, rand));
+            return GenerateRegex(result, rand, alpha, maxStates);
+        }
+
+        public const RegexTestCase GenerateRegex(RegexTestCase Basis, Random rand, char[] alpha, int maxStates)
+        {
+            if (Basis.Complexity < maxStates)
+            {
+                int randNum = rand.Next(0, 5);
+                if (randNum == 0 || randNum == 3)
+                {
+                    Basis.Union(GenerateRegex(rand, alpha, maxStates - Basis.Complexity));
+                }
+                else if (randNum < 3)
+                {
+                    Basis.Concat(GenerateRegex(rand, alpha, maxStates - Basis.Complexity));
+                }
+                if (randNum > 2 && Basis.Complexity < maxStates)
+                {
+                    Basis.Closure();
+                }
+                return GenerateRegex(Basis, rand, alpha, maxStates);
+            }
+            else
+            {
+                return Basis;
+            }
+        }
+
+        private const string GetBestMatch(Regex re, string Value)
+        {
+            string best = null
+            foreach (Match item in re.Matches(Value))
+                if (best == null || item.Length > best.Length)
+            {
+                best = item.Value;
+            }
+            return best;
+        }
+
+        private string GenerateTestString(Random rand, Regex re, char[] alpha, int MaxLength, bool^ IsMatch)
+        {
+            string testStr = AutoTests.GenerateString(alpha, MaxLength, rand);
+
+            string bestMatch = GetBestMatch(re, testStr); // Try to find a substring that matches
+
+            *IsMatch = bestMatch != null;
+            if (*IsMatch)
+            {
+                if (string.IsNullOrEmpty(bestMatch)) // Consoles don't like empty strings
+                {
+                    return GenerateTestString(rand, re, alpha, MaxLength, IsMatch); // try again
+                }
+                else
+                {
+                    return bestMatch;
+                }
+            }
+            else
+            {
+                return testStr;
+            }
+        }
+
+        public void TestRegexes(string[] Args, Random rand)
+        {
+            var re2enfaTime = new Stopwatch();
+            var nfaTime = new Stopwatch();
+            var sscTime = new Stopwatch();
+            var dfaTime = new Stopwatch();
+
+            string appPath = Args[2];
+            int testCount = AutoTests.GetOptionalInt32(Args, 3, 15);
+            int stringTestCount = AutoTests.GetOptionalInt32(Args, 4, 15);
+            int maxAlphabetLength = AutoTests.GetOptionalClampedInt32(5, 26, 26, Args, "alphabet size");
+            int maxStates = AutoTests.GetOptionalClampedInt32(6, 5, 26, Args, "state count");
+            int maxStringLength = AutoTests.GetOptionalInt32(Args, 7, 5);
+
+            int nonTrivialCount = 0;
+
+            for (int i = 0; i < testCount; i++)
+            {
+                var alpha = AutoTests.GenerateAlphabet(rand, maxAlphabetLength);
+
+                Console.WriteLine("Generating regex...");
+                var genRe = GenerateRegex(rand, alpha, maxStates);
+                string csStyleRegex = (string)genRe.CSStyleRegex;
+                Console.WriteLine("Generated regex: '" + csStyleRegex + "'");
+                AutoTests.WriteTo(csStyleRegex, "temp_input.re");
+                Console.WriteLine("Performing re2enfa...");
+                AutoTests.RunTimedCmd(appPath, new string[] { "re2enfa", "temp_input.re", "temp_output.enfa" }, re2enfaTime);
+                AutoTests.RunTimedCmd(appPath, new string[] { "mssc", "temp_output.enfa", "temp_output.dfa" }, sscTime);
+                Console.WriteLine("Performing mssc...");
+                Console.WriteLine("Performed re2enfa and mssc");
+
+                alpha = Enumerable.ToArray<char>(genRe.UsedCharacters);
+
+                string previousOutput = null;
+                bool isTrivial = true;
+
+                var unixRe = genRe.ToRegex();
+
+                for (int j = 0; j < stringTestCount; j++)
+                {
+                    string testStr = GenerateTestString(rand, unixRe,
+                        alpha, maxStringLength,
+                        &bool referenceResult);
+
+                    Console.WriteLine("Testing '" + testStr + "'...");
+
+                    string enfaOutput = AutoTests.RunTimedCmd(appPath, new string[] { "accepts", "temp_output.enfa", testStr }, nfaTime);
+                    string dfaOutput = AutoTests.RunTimedCmd(appPath, new string[] { "accepts", "temp_output.dfa", testStr }, dfaTime);
+
+                    if (!enfaOutput.Equals(dfaOutput))
+                    {
+                        Console.WriteLine("Whoa. Output for string '" + testStr +
+                            "' was '" + enfaOutput + "' when running the enfa, but '" +
+                            dfaOutput + "' when running the dfa. Stopping here!");
+                        return;
+                    }
+                    else if (enfaOutput == null || dfaOutput == null)
+                    {
+                        return;
+                    }
+
+                    Console.WriteLine("Output for '" + testStr + "': '" + dfaOutput.Trim(null) + "'");
+
+                    bool isAccepted = dfaOutput.Trim(null).Equals("The automaton accepts the given string.");
+
+                    if (!referenceResult && isAccepted)
+                    {
+                        Console.WriteLine("Whoa. String '" + testStr + "' was accepted by regex '" +
+                            csStyleRegex + "'s corresponding dfa, but not by " +
+                            "the reference implementation '" + genRe.UnixStyleRegex +
+                            "'. Stopping here!");
+                        return;
+                    }
+                    else if (referenceResult && !isAccepted)
+                    {
+                        Console.WriteLine("Whoa. String '" + testStr + "' was not accepted by regex '" +
+                            csStyleRegex + "'s corresponding dfa, but was accepted by " +
+                            "the reference implementation '" + genRe.UnixStyleRegex +
+                            "'. Stopping here!");
+                        return;
+                    }
+                    else if (previousOutput == null)
+                    {
+                        previousOutput = dfaOutput;
+                    }
+                    else if (!dfaOutput.Equals(previousOutput))
+                    {
+                        isTrivial = false;
+                    }
+                }
+
+                if (!isTrivial)
+                {
+                    nonTrivialCount++;
+                }
+
+                Console.WriteLine("Just tested regex " + (i + 1) + " out of " + testCount + ". So far so good.");
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("Seems like it all checks out.");
+            Console.WriteLine(testCount + " regexes were tested, " + nonTrivialCount + " of which were nontrivial.");
+
+            Console.WriteLine();
+            Console.WriteLine("Timing report:");
+            Console.WriteLine(" - time spent converting regexes to enfas: " + re2enfaTime.Elapsed);
+            Console.WriteLine(" - time spent performing mssc: " + sscTime.Elapsed);
+            Console.WriteLine(" - time spent emulating enfas: " + nfaTime.Elapsed);
+            Console.WriteLine(" - time spent emulating dfas: " + dfaTime.Elapsed);
+        }
+    }
+}

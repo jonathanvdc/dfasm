@@ -1,0 +1,37 @@
+digraph dfa {
+    rankdir = LR;
+    __start [style = invis, shape = point];
+    __start -> "{null}" [ label = "start" ];
+    node [shape = doublecircle]; "{dfa,null}"
+    node [shape = circle];
+    "{null}" -> "{d,null}" [ label = "d" ];
+    "{df,null}" -> "{n,null}" [ label = "n" ];
+    "{n,null}" -> "{df,null}" [ label = "f" ];
+    "{dfa,null}" -> "{null}" [ label = "f" ];
+    "{dfa,null}" -> "{n,null}" [ label = "n" ];
+    "{null}" -> "{null}" [ label = "a" ];
+    "{n,null}" -> "{e,null}" [ label = "e" ];
+    "{e,null}" -> "{n,null}" [ label = "n" ];
+    "{null}" -> "{null}" [ label = "f" ];
+    "{null}" -> "{n,null}" [ label = "n" ];
+    "{dfa,null}" -> "{null}" [ label = "a" ];
+    "{dfa,null}" -> "{d,null}" [ label = "d" ];
+    "{null}" -> "{e,null}" [ label = "e" ];
+    "{n,null}" -> "{d,null}" [ label = "d" ];
+    "{d,null}" -> "{n,null}" [ label = "n" ];
+    "{n,null}" -> "{null}" [ label = "a" ];
+    "{n,null}" -> "{n,null}" [ label = "n" ];
+    "{df,null}" -> "{null}" [ label = "f" ];
+    "{e,null}" -> "{e,null}" [ label = "e" ];
+    "{d,null}" -> "{d,null}" [ label = "d" ];
+    "{df,null}" -> "{d,null}" [ label = "d" ];
+    "{df,null}" -> "{dfa,null}" [ label = "a" ];
+    "{df,null}" -> "{e,null}" [ label = "e" ];
+    "{dfa,null}" -> "{e,null}" [ label = "e" ];
+    "{e,null}" -> "{d,null}" [ label = "d" ];
+    "{d,null}" -> "{e,null}" [ label = "e" ];
+    "{e,null}" -> "{null}" [ label = "f" ];
+    "{e,null}" -> "{null}" [ label = "a" ];
+    "{d,null}" -> "{df,null}" [ label = "f" ];
+    "{d,null}" -> "{null}" [ label = "a" ];
+}

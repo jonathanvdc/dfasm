@@ -1,0 +1,11 @@
+enfa
+start B
+accepts B
+transitions
+B p A
+B p B
+A p A
+A -> B
+A -> A
+A -> A
+

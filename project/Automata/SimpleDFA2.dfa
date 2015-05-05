@@ -1,0 +1,34 @@
+dfa
+start {null}
+accepts {dfa,null}
+transitions
+{df,null} n {n,null}
+{n,null} f {df,null}
+{null} d {d,null}
+{dfa,null} n {n,null}
+{null} a {null}
+{dfa,null} f {null}
+{e,null} n {n,null}
+{n,null} e {e,null}
+{null} f {null}
+{dfa,null} a {null}
+{null} n {n,null}
+{dfa,null} d {d,null}
+{null} e {e,null}
+{n,null} d {d,null}
+{d,null} n {n,null}
+{n,null} a {null}
+{df,null} f {null}
+{n,null} n {n,null}
+{e,null} e {e,null}
+{d,null} d {d,null}
+{df,null} d {d,null}
+{df,null} a {dfa,null}
+{df,null} e {e,null}
+{dfa,null} e {e,null}
+{e,null} d {d,null}
+{d,null} e {e,null}
+{e,null} f {null}
+{e,null} a {null}
+{d,null} f {df,null}
+{d,null} a {null}
