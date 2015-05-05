@@ -18,7 +18,5 @@ from Lexer import *
 
 # c*
 
-regex = Automata.Interop.CompileRegex("c*")
-print(len(regex.GetStates()))
 print(lexAsm("mov eax ebx"))
 regex.Dispose()
