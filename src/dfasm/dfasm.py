@@ -18,5 +18,5 @@ from Lexer import *
 
 # c*
 
-print(lexAsm("mov eax ebx"))
+print(lexAsm("mov eax [ebx*4+3]"))
 regex.Dispose()

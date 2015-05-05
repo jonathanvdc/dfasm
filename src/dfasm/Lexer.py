@@ -26,7 +26,13 @@ def getAsmRegexes():
     return  { 
         "(_+c)(_+c+n)*"     : "identifier",
         "n*"                : "integer",
-        " +\n+\r+\t"        : "whitespace"
+        " +\n+\r+\t"        : "whitespace",
+        "["                 : "lbracket",
+        "]"                 : "rbracket",
+        ","                 : "comma",
+        "+"                 : "plus",
+        "-"                 : "minus",
+        "*"                 : "asterisk"
     }
 
 def compileRegexes(regexDict):
