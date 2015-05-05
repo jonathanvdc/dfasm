@@ -34,46 +34,39 @@ def processChar(text):
 def processText(text):
     return map(processChar, text)
 
-def getAsmRegexes():
-    return  { 
-        "(_+c)(_+c+n)*"     : "identifier",
-        "n*"                : "integer",
-        "( +\n+\r+\t)*"     : "whitespace",
-        "\\("               : "lparen",
-        "\\)"               : "rparen",
-        "["                 : "lbracket",
-        "]"                 : "rbracket",
-        ","                 : "comma",
-        "\\+"               : "plus",
-        "-"                 : "minus",
-        "\\*"               : "asterisk",
-        "."                 : "dot",
-        ":"                 : "colon",
-        ";"                 : "comment",
-    }
+asmRegexes = {
+    "identifier": "(_+c)(_+c+n)*",
+    "integer": "n*",
+    "whitespace": "( +\n+\r+\t)*",
+    "lparen": "\\(",
+    "rparen": "\\)",
+    "lbracket": "[",
+    "rbracket": "]",
+    "comma": ",",
+    "plus": "\\+",
+    "minus": "-",
+    "asterisk": "\\*",
+    "dot": ".",
+    "colon": ":",
+    "semicolon": ";",
+}
 
-def compileRegexes(regexDict):
-    results = { }
-    for k in regexDict.keys():
-        regex = Automata.Interop.CompileRegex(k)
-        results[regex.Optimize()] = regexDict[k]
-        regex.Dispose() # Deallocate the old regex and use the optimized one instead
-    return results
+# Compile regexes to automata.
+def makeDFA(regex):
+    compiled = Automata.Interop.CompileRegex(regex)
+    dfa = compiled.Optimize()
+    compiled.Dispose()
+    return dfa
 
-__defaultRegexes = None
-def compileAsmRegexes():
-    global __defaultRegexes
-    if __defaultRegexes is None:
-        __defaultRegexes = compileRegexes(getAsmRegexes())
-    return __defaultRegexes
+asmRegexes = {type: makeDFA(regex) for type, regex in asmRegexes.items()}
 
-def getBestMatch(text, startIndex, regexes):
+def getBestMatch(text, startIndex, grammar):
     result = "undefined"
     longest = -1
-    for k in regexes.keys():
-        match = longestSubstring(text, startIndex, k)
+    for type, dfa in grammar.items():
+        match = longestSubstring(text, startIndex, dfa)
         if match > longest:
-            result = regexes[k]
+            result = type
             longest = match
 
     if longest <= 0:
@@ -92,4 +85,4 @@ def lex(text, regexes):
         size = newSize
     return results
 
-lexAsm = lambda text: lex(text, compileAsmRegexes())
+lexAsm = lambda text: lex(text, asmRegexes)
