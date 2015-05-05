@@ -32,7 +32,10 @@ def getAsmRegexes():
         ","                 : "comma",
         "+"                 : "plus",
         "-"                 : "minus",
-        "*"                 : "asterisk"
+        "*"                 : "asterisk",
+        "."                 : "dot",
+        ":"                 : "colon",
+        ";"                 : "comment",
     }
 
 def compileRegexes(regexDict):
