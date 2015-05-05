@@ -9,6 +9,9 @@ class Token:
         # TODO: how do we mark comments as trivia?
         return self.type == 'whitespace'
 
+    def __repr__(self):
+        return 'Token(%r, %r)' % (self.contents, self.type)
+
 def longestSubstring(text, startIndex, regex):
     state = regex.GetInitialState()
     i = startIndex
