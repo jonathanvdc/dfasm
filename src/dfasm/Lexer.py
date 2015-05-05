@@ -38,7 +38,9 @@ def getAsmRegexes():
 def compileRegexes(regexDict):
     results = { }
     for k in regexDict.keys():
-        results[Automata.Interop.CompileRegex(k)] = regexDict[k]
+        regex = Automata.Interop.CompileRegex(k)
+        results[regex.Optimize()] = regexDict[k]
+        regex.Dispose() # Deallocate the old regex and use the optimized one instead
     return results
 
 __defaultRegexes = None
