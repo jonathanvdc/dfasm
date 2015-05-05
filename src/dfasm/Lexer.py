@@ -59,8 +59,8 @@ def getBestMatch(text, startIndex, regexes):
             result = regexes[k]
             longest = match
 
-    if longest == -1:
-        return result, startIndex # Be generous and return a single-character string
+    if longest <= 0:
+        return "undefined", startIndex + 1 # Be generous and return a single-character string
 
     return result, longest
 
