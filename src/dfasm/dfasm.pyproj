@@ -34,6 +34,9 @@
     <Compile Include="Instruction.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Lexer.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>
