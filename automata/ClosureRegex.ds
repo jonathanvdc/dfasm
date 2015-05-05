@@ -1,0 +1,47 @@
+using std;
+
+namespace Automata
+{
+    public struct ClosureRegex : IRegex
+    {
+        public const this(set IRegex Regex);
+        
+        public IRegex Regex;
+        
+        public const string ToString()
+        {
+            return "(" + Regex.ToString() + ")" + "*";
+        }
+        
+        public const ENFAutomaton<RegexState, string> ToENFAutomaton()
+        {
+            var transTable = new TransitionTable<pair<RegexState, Optional<string>>, LinearSet<RegexState>>();
+            
+            var innerAutomaton = Regex.ToENFAutomaton();
+            
+            transTable.Add(innerAutomaton.TransitionFunction);
+            
+            var startState = new RegexState();
+            var endState = new RegexState();
+            
+            var label = new pair<RegexState, Optional<string>>(startState, new Optional<string>());
+            var starTrans = new LinearSet<RegexState>();
+            starTrans.Add(innerAutomaton.StartState);
+            starTrans.Add(endState);
+            transTable.Add(label, starTrans);
+            
+            var innerEndStates = innerAutomaton.AcceptingStates;
+            
+            foreach (var item in innerEndStates.Items)
+            {                
+                var pipeLabel = new pair<RegexState, Optional<string>>(item, new Optional<string>());
+                transTable.Add(pipeLabel, starTrans);
+            }
+            
+            var acceptingStates = new LinearSet<RegexState>();
+            acceptingStates.Add(endState);
+            
+            return new ENFAutomaton<RegexState, string>(startState, acceptingStates, transTable);
+        }
+    }
+}

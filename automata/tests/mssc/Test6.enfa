@@ -1,0 +1,7 @@
+enfa
+start A
+accepts
+transitions
+B z A
+B s B
+

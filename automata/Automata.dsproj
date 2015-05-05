@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="Automata">
+  <Setter Property="TargetPlatform" Value="C++" />
+  <Setter Property="AssemblyName" Value="Automata" />
+  <Option Key="wrelax-generic-operators" Value="true" />
+  <ItemGroup>
+    <RuntimeLibrary Include="PlatformRT" />
+    <RuntimeLibrary Include="PortableRT" />
+    <RuntimeLibrary Include="System" />
+    <RuntimeLibrary Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DFAutomaton.ds" />
+    <Compile Include="IAutomaton.ds" />
+    <Compile Include="IFunction.ds" />
+    <Compile Include="NFAutomaton.ds" />
+    <Compile Include="LinearSet.ds" />
+    <Compile Include="TransitionTable.ds" />
+    <Compile Include="Optional.ds" />
+    <Compile Include="ENAutomaton.ds" />
+    <Compile Include="Regex.ds" />
+    <Compile Include="UnionRegex.ds" />
+    <Compile Include="ConcatRegex.ds" />
+    <Compile Include="ClosureRegex.ds" />
+    <Compile Include="TagFunction.ds" />
+  </ItemGroup>
+</Project>

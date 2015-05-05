@@ -1,0 +1,35 @@
+nfa
+start D
+accepts E D A C
+transitions
+D y C
+A y D
+B h D
+D n A
+C n E
+A n C
+A y C
+C h D
+C y A
+C h B
+B h B
+E n C
+C n C
+E h E
+B l D
+E n E
+A y E
+A h E
+B l A
+A n D
+E y E
+A l B
+C n D
+A h D
+A n A
+B l B
+B h C
+E n B
+D y A
+E y C
+

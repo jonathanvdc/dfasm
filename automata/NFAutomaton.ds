@@ -1,0 +1,126 @@
+using std;
+
+namespace Automata
+{
+    /// <summary>
+    /// Defines a non-deterministic finite automaton.
+    /// </summary>
+    public struct NFAutomaton<TState, TChar> : IAutomaton<TChar>
+    {
+        public const this(set TState StartState, set LinearSet<TState> AcceptingStates, set TransitionTable<pair<TState, TChar>, LinearSet<TState>> TransitionFunction);
+        
+        public TState StartState { const get; private set; }
+        public LinearSet<TState> AcceptingStates { const get; private set; }
+        public TransitionTable<pair<TState, TChar>, LinearSet<TState>> TransitionFunction { const get; private set; }
+        
+        public const LinearSet<TState> PerformTransition(TState State, TChar Character)
+        {
+            var transFun = TransitionFunction;
+            return transFun.Apply(new pair<TState, TChar>(State, Character));
+        }
+        public const LinearSet<TState> PerformAllTransitions(LinearSet<TState> States, TChar Character)
+        {
+            var results = new LinearSet<TState>();
+            foreach (var val in States.Items)
+            {
+                results.AddAll(PerformTransition(val, Character));
+            }
+            return results;
+        }
+        public const LinearSet<TState> PerformExtendedTransition(TState State, TChar[] Characters)
+        {
+            var states = new LinearSet<TState>();
+            states.Add(State);
+            foreach (var item in Characters)
+            {
+                states = PerformAllTransitions(states, item);
+            }
+            return states;
+        }
+        
+        public const bool ContainsAcceptingState(LinearSet<TState> States)
+        {
+            var acceptStates = AcceptingStates;
+            var intersection = acceptStates.Intersect(States);
+            return !intersection.IsEmpty;
+        }
+        
+        public const bool Accepts(TChar[] Characters)
+        {
+            return ContainsAcceptingState(PerfromExtendedTransition(StartState, Characters));
+        }
+        
+        public const LinearSet<TState> GetStates()
+        {
+            LinearSet<TState> results = new LinearSet<TState>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc.Map)
+            {
+                results.Add(item.first.first);
+                results.AddAll(item.second);
+            }
+            return results;
+        }
+        
+        public const LinearSet<TChar> GetAlphabet()
+        {
+            LinearSet<TChar> results = new LinearSet<TChar>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc.Map)
+            {
+                results.Add(item.first.second);
+            }
+            return results;
+        }
+        
+        /// <summary>
+        /// Performs the subset construction on this automaton.
+        /// </summary>
+        public const DFAutomaton<LinearSet<TState>, TChar> ToDFAutomaton()
+        {
+            return ToDFAutomaton(GetAlphabet());
+        }
+        
+        /// <summary>
+        /// Performs the subset construction based on the given alphabet.
+        /// </summary>
+        private const DFAutomaton<LinearSet<TState>, TChar> ToDFAutomaton(LinearSet<TChar> Alphabet)
+        {
+            var startState = new LinearSet<TState>();
+            startState.Add(StartState);
+            var transMap = new unordered_map<pair<LinearSet<TState>, TChar>, LinearSet<TState>>();
+            var accStates = new LinearSet<LinearSet<TState>>();
+            
+            var processedStates = new LinearSet<LinearSet<TState>>();
+            var nextStates = new LinearSet<LinearSet<TState>>();
+            var initialState = new LinearSet<TState>();
+            initialState.Add(StartState);
+            nextStates.Add(initialState);
+            
+            while (!nextStates.IsEmpty)
+            {
+                var last = nextStates.Last;
+                var accumulatedStates = new LinearSet<LinearSet<TState>>();
+                if (!processedStates.Contains(last))
+                {
+                    foreach (var item in Alphabet.Items)
+                    {
+                        var trans = PerformAllTransitions(last, item);
+                        accumulatedStates.Add(trans);
+                        transMap[new pair<LinearSet<TState>, TChar>(last, item)] = trans;
+                    }
+                    processedStates.Add(last);
+                    if (ContainsAcceptingState(last))
+                    {
+                        accStates.Add(last);
+                    }
+                }
+                nextStates.RemoveLast();
+                nextStates.AddAll(accumulatedStates);
+            }
+            
+            var transFun = new TransitionTable<pair<LinearSet<TState>, TChar>, LinearSet<TState>>(transMap);
+            return new DFAutomaton<LinearSet<TState>, TChar>(startState, accStates, transFun);
+        }
+    }
+}

@@ -1,0 +1,12 @@
+dfa
+start A
+accepts D
+transitions
+A 0 B
+B 0 B
+C 0 D
+D 0 B
+A 1 C
+B 1 C
+C 1 C
+D 1 C

@@ -1,0 +1,82 @@
+using std;
+
+namespace Automata
+{
+    public class RegexState
+    {
+        public const this();
+    }
+    
+    /// <summary>
+    /// Defines a generic regular expression.
+    /// </summary>
+    public interface IRegex
+    {
+        const ENFAutomaton<RegexState, string> ToENFAutomaton();
+        const string ToString();
+    }
+    
+    public struct LiteralRegex : IRegex
+    {
+        public const this(set string Literal);
+        
+        public string Literal;
+        
+        public const string ToString()
+        {
+            return Literal;
+        }
+        
+        public const ENFAutomaton<RegexState, string> ToENFAutomaton()
+        {
+            var startState = new RegexState();
+            var acceptingStates = new LinearSet<RegexState>();
+            acceptingStates.Add(new RegexState());
+            var transitions = new unordered_map<pair<RegexState, Optional<string>>, LinearSet<RegexState>>();
+            var label = new pair<RegexState, Optional<string>>(startState, new Optional<string>(Literal));
+            transitions[label] = acceptingStates;
+            var transTable = new TransitionTable<pair<RegexState, Optional<string>>, LinearSet<RegexState>>(transitions);
+            return new ENFAutomaton<RegexState, string>(startState, acceptingStates, transTable);
+        }
+    }
+    
+    public struct EpsilonRegex : IRegex
+    {
+        public const this();
+        
+        public const string ToString()
+        {
+            return "\\e";
+        }
+        
+        public const ENFAutomaton<RegexState, string> ToENFAutomaton()
+        {
+            var startState = new RegexState();
+            var acceptingStates = new LinearSet<RegexState>();
+            acceptingStates.Add(new RegexState());
+            var transitions = new unordered_map<pair<RegexState, Optional<string>>, LinearSet<RegexState>>();
+            var label = new pair<RegexState, Optional<string>>(startState, new Optional<string>());
+            transitions[label] = acceptingStates;
+            var transTable = new TransitionTable<pair<RegexState, Optional<string>>, LinearSet<RegexState>>(transitions);
+            return new ENFAutomaton<RegexState, string>(startState, acceptingStates, transTable);
+        }
+    }
+    
+    public struct PhiRegex : IRegex
+    {
+        public const this();
+        
+        public const string ToString()
+        {
+            return "\\p";
+        }
+        
+        public const ENFAutomaton<RegexState, string> ToENFAutomaton()
+        {
+            var startState = new RegexState();
+            var acceptingStates = new LinearSet<RegexState>();
+            var transTable = new TransitionTable<pair<RegexState, Optional<string>>, LinearSet<RegexState>>();
+            return new ENFAutomaton<RegexState, string>(startState, acceptingStates, transTable);
+        }
+    }
+}

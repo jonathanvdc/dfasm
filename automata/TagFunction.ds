@@ -1,0 +1,35 @@
+using std;
+
+namespace Automata
+{
+    /// <summary>
+    /// Defines a function that "tags" an input value with a fixed tag.
+    /// </summary>
+    public struct TagFunction<T, TTag> : IFunction<T, pair<T, TTag>>
+    {
+        /// <summary>
+        /// Creates a new tagging function from the given tag.
+        /// </summary>
+        public const this(set TTag Tag);
+
+        public TTag Tag;
+
+        public const pair<T, TTag> Apply(T Value)
+        {
+            return new pair<T, TTag>(Value, Tag);
+        }
+    }
+
+    /// <summary>
+    /// Defines an "id" function.
+    /// </summary>
+    public struct IdFunction<T> : IFunction<T, T>
+    {
+        /// <summary>
+        /// Creates a new "id" function.
+        /// </summary>
+        public const this();
+
+        public const T Apply(T Value) return Value;
+    }
+}

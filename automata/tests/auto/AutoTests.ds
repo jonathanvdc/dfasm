@@ -1,0 +1,346 @@
+// This test targets the CLR (.Net) platform and runtime, not C++.
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Linq;
+using System.Diagnostics;
+using System.IO;
+
+namespace Automata
+{
+    public static class AutoTests
+    {
+        public const char[] GenerateAlphabet(Random rand, int MaxLength)
+        {
+            var results = new HashSet<char>();
+            int count = rand.Next(2, MaxLength + 1);
+            for (int i = 0; i < count; i++)
+            {
+                char val = (char)((int)'a' + rand.Next(0, 26));
+                while (results.Contains(val))
+                {
+                    val = (char)((int)'a' + rand.Next(0, 26));
+                }
+                results.Add(val);
+            }
+            return Enumerable.ToArray<char>(results);
+        }
+
+        public const char[] GenerateStates(Random rand, int MaxLength)
+        {
+            int count = rand.Next(1, MaxLength + 1);
+            var results = new char[count];
+            char current = 'A';
+            foreach (var item in results)
+            {
+                item = current;
+                current = (char)((int)current + 1);
+            }
+            return results;
+        }
+
+        public const string GenerateString(char[] Alphabet, int MaxStringLength, Random rand)
+        {
+            int count = rand.Next(1, MaxStringLength + 1);
+            var result = new StringBuilder(count);
+            for (int i = 0; i < count; i++)
+            {
+                result.Append(GetRandomElement<char>(Alphabet, rand));
+            }
+            return (string)result;
+        }
+
+        public T GetRandomElement<T>(T[] Values, Random rand)
+        {
+            return Values[rand.Next(Values.Length)];
+        }
+
+        public const string GenerateNFA(Random rand, char[] alpha, int maxStates, bool AllowEpsilon)
+        {
+            var states = GenerateStates(rand, maxStates);
+
+            var sb = new StringBuilder();
+
+            if (AllowEpsilon)
+                sb.AppendLine("enfa");
+            else
+                sb.AppendLine("nfa");
+
+            sb.AppendLine("start " + GetRandomElement<char>(states, rand));
+            sb.Append("accepts");
+            int acceptCount = rand.Next(0, states.Length);
+            var accepted = new HashSet<char>();
+            for (int i = 0; i < acceptCount; i++)
+            {
+                accepted.Add(GetRandomElement<char>(states, rand));
+            }
+            foreach (var item in accepted)
+            {
+                sb.Append(' ');
+                sb.Append(item);
+            }
+            sb.AppendLine();
+
+            int transCount = rand.Next(0, 2 * states.Length * alpha.Length);
+            sb.AppendLine("transitions");
+
+            for (int i = 0; i < transCount; i++)
+            {
+                char fromState = GetRandomElement<char>(states, rand);
+                char toState = GetRandomElement<char>(states, rand);
+
+                string transName;
+                if (AllowEpsilon && rand.Next(0, 3) == 0)
+                {
+                    transName = "->";
+                }
+                else transName = (string)GetRandomElement<char>(alpha, rand);
+
+                sb.Append(fromState);
+                sb.Append(' ').Append(transName).Append(' ');
+                sb.Append(toState).AppendLine();
+            }
+
+            return (string)sb;
+        }
+
+        // Adapted from http://www.codeproject.com/Articles/79620/Run-console-application-from-a-NET-application
+        public string RunCmd(string Name, string[] commands)
+        {
+            ProcessStartInfo info = new ProcessStartInfo(Name);
+            var sb = new StringBuilder();
+            foreach (var command in commands)
+            {
+                sb.Append(" ");
+                sb.Append(command);
+            }
+            info.Arguments = (string)sb;
+            info.UseShellExecute = false;
+            info.RedirectStandardInput = true;
+            info.RedirectStandardOutput = true;
+            info.RedirectStandardError = true;
+            info.CreateNoWindow = true;
+
+            Process process = Process.Start(info);
+
+            StreamWriter sw = process.StandardInput;
+            StreamReader sr = process.StandardOutput;
+            StreamReader se = process.StandardError;
+
+            sw.Close();
+
+            string errVal = se.ReadToEnd();
+            if (!string.IsNullOrWhiteSpace(errVal))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("Error: ");
+                Console.ResetColor();
+                Console.WriteLine(errVal);
+                Console.WriteLine("Remark: error caused by command '" + Name + (string)sb + "'");
+                Console.WriteLine("Stopping here.");
+                return null;
+            }
+
+            string returnvalue = sr.ReadToEnd();
+
+            process.WaitForExit();
+
+            process.Dispose();
+
+            return returnvalue;
+        }
+
+        public string RunTimedCmd(string Name, string[] commands, Stopwatch Watch)
+        {
+            Watch.Start();
+            string result = RunCmd(Name, commands);
+            Watch.Stop();
+            return result;
+        }
+
+        public void WriteTo(string Automaton, string Path)
+        {
+            var stream = new FileStream(Path, FileMode.Create, FileAccess.Write);
+            var writer = new StreamWriter(stream);
+            writer.Write(Automaton);
+            writer.Dispose();
+            stream.Dispose();
+        }
+
+        public const int GetOptionalInt32(string[] Args, int Index, int Default)
+        {
+            if (Args.Length > Index)
+            {
+                return int.Parse(Args[Index]);
+            }
+            else
+            {
+                return Default;
+            }
+        }
+
+        public const int GetOptionalClampedInt32(int Index, int Default, int Max, string[] Args, string Name)
+        {
+            int val = GetOptionalInt32(Args, Index, Default);
+            if (val > Max)
+            {
+                Console.WriteLine("I'm afraid I can't do that. Max " + Name + " set to " + Max + ".");
+                return Max;
+            }
+            return val;
+        }
+
+        public void TestAutomata(string[] Args, bool AllowEpsilon, Random rand)
+        {
+            var nfaTime = new Stopwatch();
+            var sscTime = new Stopwatch();
+            var dfaTime = new Stopwatch();
+
+            string appPath = Args[2];
+            int testCount = GetOptionalInt32(Args, 3, 15);
+            int stringTestCount = GetOptionalInt32(Args, 4, 15);
+            int maxAlphabetLength = GetOptionalClampedInt32(5, 5, 26, Args, "alphabet size");
+            int maxStates = GetOptionalClampedInt32(6, 10, 26, Args, "state count");
+            int maxStringLength = GetOptionalInt32(Args, 7, 5);
+
+            int nonTrivialCount = 0;
+
+            for (int i = 0; i < testCount; i++)
+            {
+                var alpha = GenerateAlphabet(rand, maxAlphabetLength);
+                Console.WriteLine("Generating automaton...");
+                var genNfa = GenerateNFA(rand, alpha, maxStates, AllowEpsilon);
+                WriteTo(genNfa, "temp_input.automaton");
+                Console.WriteLine("Performing ssc/mssc...");
+                if (AllowEpsilon)
+                {
+                    RunTimedCmd(appPath, new string[] { "mssc", "temp_input.automaton", "temp_output.dfa" }, sscTime);
+                }
+                else
+                {
+                    RunTimedCmd(appPath, new string[] { "ssc", "temp_input.automaton", "temp_output.dfa" }, sscTime);
+                }
+                Console.WriteLine("Performed ssc/mssc");
+
+                string previousOutput = null;
+                bool isTrivial = true;
+
+                for (int j = 0; j < stringTestCount; j++)
+                {
+                    string testStr = GenerateString(alpha, maxStringLength, rand);
+
+                    Console.WriteLine("Testing '" + testStr + "'...");
+
+                    string enfaOutput = RunTimedCmd(appPath, new string[] { "accepts", "temp_input.automaton", testStr }, nfaTime);
+                    string dfaOutput = RunTimedCmd(appPath, new string[] { "accepts", "temp_output.dfa", testStr }, dfaTime);
+
+                    if (!enfaOutput.Equals(dfaOutput))
+                    {
+                        Console.WriteLine("Whoa. Output for string '" + testStr +
+                            "' was '" + enfaOutput + "' when running the (e)nfa, but '" +
+                            dfaOutput + "' when running the dfa. Stopping here!");
+                        return;
+                    }
+                    else if (enfaOutput == null || dfaOutput == null)
+                    {
+                        return;
+                    }
+                    else if (previousOutput == null)
+                    {
+                        previousOutput = dfaOutput;
+                    }
+                    else if (!dfaOutput.Equals(previousOutput))
+                    {
+                        isTrivial = false;
+                    }
+
+                    Console.WriteLine("Output for '" + testStr + "': '" + dfaOutput.Trim(null) + "'");
+                }
+
+                if (!isTrivial)
+                {
+                    nonTrivialCount++;
+                }
+
+                Console.WriteLine("Just ran automaton " + (i + 1) + " out of " + testCount + ". So far so good.");
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("Seems like it all checks out.");
+            Console.WriteLine(testCount + " automata were tested, " + nonTrivialCount + " of which were nontrivial.");
+
+            Console.WriteLine();
+            Console.WriteLine("Timing report:");
+            Console.WriteLine(" - time spent performing ssc/mssc: " + sscTime.Elapsed);
+            Console.WriteLine(" - time spent emulating (e)nfas: " + nfaTime.Elapsed);
+            Console.WriteLine(" - time spent emulating dfas: " + dfaTime.Elapsed);
+        }
+
+        public void Main(string[] Args)
+        {
+            if (Args.Length < 2)
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write("We require more minerals.");
+                Console.ResetColor();
+                Console.Write(" I mean, err... command-line arguments. Yes, ");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("command-line arguments.");
+                Console.ResetColor();
+                Console.WriteLine("Usage: create|test nfa|enfa|regex [<apppath.exe>" +
+                    " [automaton-test-count = 15] [string-test-count = 15]] [max-alphabet-length = 5]" +
+                    " [max-states = 10] [max-string-length = 5]");
+                return;
+            }
+
+            bool createOnly = Args[0].Trim(null).ToLower().Equals("create");
+
+            var rand = new Random();
+
+            bool isRegex = Args[1].Trim(null).ToLower().Equals("regex");
+
+            if (isRegex)
+            {
+                if (createOnly)
+                {
+                    int maxAlphabetLength = GetOptionalClampedInt32(2, 26, 26, Args, "alphabet size");
+                    int maxStates = GetOptionalClampedInt32(3, 5, 26, Args, "state count");
+
+                    var alpha = GenerateAlphabet(rand, maxAlphabetLength);
+                    var regex = RegexTests.GenerateRegex(rand, alpha, maxStates);
+
+                    if (Args.Length > 4 && Args[4].Trim(null).Equals("unix"))
+                    {
+                        Console.WriteLine((string)regex.UnixStyleRegex);
+                    }
+                    else
+                    {
+                        Console.WriteLine((string)regex.CSStyleRegex);
+                    }
+                }
+                else
+                {
+                    RegexTests.TestRegexes(Args, rand);
+                }
+            }
+            else
+            {
+                bool allowEpsilon = Args[1].Trim(null).ToLower().Equals("enfa");
+
+                if (createOnly)
+                {
+                    int maxAlphabetLength = GetOptionalClampedInt32(2, 5, 26, Args, "alphabet size");
+                    int maxStates = GetOptionalClampedInt32(3, 10, 26, Args, "state count");
+
+                    var alpha = GenerateAlphabet(rand, maxAlphabetLength);
+                    Console.WriteLine(GenerateNFA(rand, alpha, maxStates, allowEpsilon));
+                }
+                else
+                {
+                    TestAutomata(Args, allowEpsilon, rand);
+                }
+            }
+        }
+    }
+}

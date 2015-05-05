@@ -1,0 +1,115 @@
+using std;
+
+public struct LinearSet<T>
+{
+    public const this();
+    public const this(vector<T> Values)
+    {
+        this.vals = Values;
+    }
+    public const this(T[] Values)
+    {
+        this.vals = (vector<T>)Values;
+    }
+    public const this(initializer_list<T> Values)
+    {
+        this.vals = new vector<T>(Values);
+    }
+    public const this(T Value)
+    {
+        this.vals.push_back(Value);
+    }
+
+    private vector<T> vals;
+
+    public vector<T> Items { const get return vals; }
+
+    public int Count { const get return (int)vals.size(); }
+    public bool IsEmpty { const get return Count == 0; }
+
+    public const bool Contains(T Value)
+    {
+        foreach (var item in vals)
+            if (item == Value)
+        {
+            return true;
+        }
+        return false;
+    }
+    public const bool ContainsAll(LinearSet<T> Values)
+    {
+        foreach (var item in Values.vals)
+            if (!Contains(item))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public void Add(T Value)
+    {
+        if (!Contains(Value))
+        {
+            vals.push_back(Value);
+        }
+    }
+    public void AddAll(LinearSet<T> Other)
+    {
+        foreach (var item in Other.vals)
+        {
+            Add(item);
+        }
+    }
+
+    public T Last { const get return vals[Count - 1]; }
+
+    public void RemoveLast()
+    {
+        vals.pop_back();
+    }
+
+    /// <summary>
+    /// Removes the last element from the linear set and returns it.
+    /// </summary>
+    public T Pop()
+    {
+        var elem = Last;
+        RemoveLast();
+        return elem;
+    }
+
+    public const LinearSet<T> Union(LinearSet<T> Other)
+    {
+        LinearSet<T> copy = this;
+        copy.AddAll(Other);
+        return copy;
+    }
+    public const LinearSet<T> Intersect(LinearSet<T> Other)
+    {
+        LinearSet<T> result = new LinearSet<T>();
+        foreach (var item in vals)
+        {
+            if (Other.Contains(item)) result.Add(item);
+        }
+        return result;
+    }
+    public const LinearSet<T> Without(T Value)
+    {
+        var result = new LinearSet<T>();
+        foreach (var item in Items)
+            if (item != Value)
+        {
+            result.Add(item);
+        }
+        return result;
+    }
+
+    public const bool operator==(LinearSet<T> Other)
+    {
+        return this.ContainsAll(Other) && Other.ContainsAll(this);
+    }
+    public const bool operator!=(LinearSet<T> Other)
+    {
+        return !this.ContainsAll(Other) || !Other.ContainsAll(this);
+    }
+}

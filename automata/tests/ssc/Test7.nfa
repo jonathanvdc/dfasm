@@ -1,0 +1,13 @@
+nfa
+start B
+accepts A
+transitions
+D k A
+A b B
+A j C
+A b C
+D k B
+C j D
+D j A
+D k D
+

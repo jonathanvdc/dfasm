@@ -1,0 +1,60 @@
+nfa
+start C
+accepts D A F E
+transitions
+B d C
+G a G
+E d E
+C j F
+D i F
+C a B
+A a C
+G f B
+E d G
+F f E
+F j F
+C i D
+E j G
+G d E
+D j F
+F f B
+F a A
+G j G
+G i B
+B i B
+C a G
+B i E
+G j A
+G j F
+D d B
+B f C
+A d F
+A d A
+D a F
+G j D
+G d C
+C d E
+E j B
+C i G
+B j F
+E d D
+F a E
+F f A
+C a B
+C a F
+B d A
+A f A
+D d B
+F j D
+B a F
+D j F
+C j F
+A d A
+C j B
+B j G
+G f C
+C d A
+D d B
+F j B
+A i G
+
