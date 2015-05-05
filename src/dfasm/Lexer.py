@@ -1,5 +1,14 @@
 import Automata
 
+class Token:
+    def __init__(self, contents, type):
+        self.contents = contents
+        self.type = type
+
+    def isTrivia(self):
+        # TODO: how do we mark comments as trivia?
+        return self.type == 'whitespace'
+
 def longestSubstring(text, startIndex, regex):
     state = regex.GetInitialState()
     i = startIndex
@@ -75,7 +84,8 @@ def lex(text, regexes):
     processedText = processText(text)
     while size < len(processedText):
         type, newSize = getBestMatch(processedText, size, regexes)
-        results.append((text[size:newSize], type))
+        token = Token(text[size:newSize], type)
+        results.append(token)
         size = newSize
     return results
 
