@@ -8,6 +8,8 @@
 #include "LambdaFunction.h"
 #include "RegexParser.h"
 
+using namespace System::Collections::Generic;
+
 namespace Automata
 {
 	typedef int State;
@@ -26,16 +28,20 @@ namespace Automata
 
 		Automata::DFAutomaton<State, Symbol>* GetAutomaton();
 
+		array<int>^ GetStates();
 		DFAState GetInitialState();
+		DFAHandle^ Optimize();
+		LinearSet<std::string>* GetAlphabet() { return alphabet; }
 
 	private:
 		Automata::DFAutomaton<State, Symbol>* autom;
+		LinearSet<std::string>* alphabet;
 	};
 
 	public value struct DFAState
 	{
 	public:
-		DFAState(DFAHandle^ Automaton, int State);
+		DFAState(DFAHandle^ Automaton, int State, bool IsInvalid);
 
 		bool Accepts();
 
@@ -44,6 +50,7 @@ namespace Automata
 	private:
 		DFAHandle^ autom;
 		int state;
+		bool isInvalid;
 	};
 
 	public ref class Interop abstract sealed

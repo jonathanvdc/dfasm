@@ -52,12 +52,17 @@ namespace Automata
 	DFAHandle::DFAHandle(Automata::DFAutomaton<State, Symbol> Automaton)
 		: autom(new Automata::DFAutomaton<State, Symbol>(Automaton))
 	{
-
+		this->alphabet = new LinearSet<std::string>();
+		for (std::string item : Automaton.GetAlphabet().getItems())
+		{
+			this->alphabet->Add(item);
+		}
 	}
 
 	DFAHandle::~DFAHandle()
 	{
 		delete autom;
+		delete alphabet;
 	}
 
 	Automata::DFAutomaton<State, Symbol>* DFAHandle::GetAutomaton()
@@ -67,30 +72,63 @@ namespace Automata
 
 	DFAState DFAHandle::GetInitialState()
 	{
-		return DFAState(this, autom->getStartState());
+		return DFAState(this, autom->getStartState(), false);
 	}
 
-	DFAState::DFAState(DFAHandle^ Automaton, int State)
-		: autom(Automaton), state(State)
+	array<int>^ DFAHandle::GetStates()
+	{
+		auto states = this->autom->GetStates().getItems();
+		auto results = gcnew array<int>(states.size());
+		for (int i = 0; i < results->Length; i++)
+		{
+			results[i] = states[i];
+		}
+		return results;
+	}
+
+	DFAHandle^ DFAHandle::Optimize()
+	{
+		auto newDfa = this->autom->Optimize();
+
+		auto renamedDFa = RenameDFA(newDfa);
+
+		return gcnew DFAHandle(renamedDFa);
+	}
+
+	DFAState::DFAState(DFAHandle^ Automaton, int State, bool IsInvalid)
+		: autom(Automaton), state(State), isInvalid(IsInvalid)
 	{
 
 	}
 
 	bool DFAState::Accepts()
 	{
-		return autom->GetAutomaton()->IsAcceptingState(state);
+		return !isInvalid && autom->GetAutomaton()->IsAcceptingState(state);
 	}
 
 	DFAState DFAState::AddInput(System::String^ Data)
 	{
+		if (isInvalid)
+		{
+			return *this;
+		}
+
 		auto managed = state;
 		int s = state;
 		auto a = autom->GetAutomaton();
 		for each (auto item in Data)
 		{
-			s = a->PerformTransition(s, std::string(1, (char)item));
+			auto str = std::string(1, (char)item);
+			if (autom->GetAlphabet()->Contains(str))
+			{
+				s = a->PerformTransition(s, std::string(1, (char)item));
+			}
+			else
+			{
+				return DFAState(autom, s, true);
+			}
 		}
-		return DFAState(autom, s);
+		return DFAState(autom, s, isInvalid);
 	}
 
 	DFAHandle^ Interop::CompileRegex(System::String^ Regex)
@@ -105,9 +143,7 @@ namespace Automata
 
 		auto dfa = enfa.ToDFAutomaton();
 
-		auto newDfa = dfa.Optimize();
-
-		auto renamedDFa = RenameDFA(newDfa);
+		auto renamedDFa = RenameDFA(dfa);
 
 		return gcnew DFAHandle(renamedDFa);
 	}
