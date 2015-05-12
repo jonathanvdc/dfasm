@@ -146,6 +146,11 @@ class LabelNode(object):
         return "LabelNode(%r)" % self.name
 
 def parseArgument(tokens):
+    """ Parse an argument to an instruction:
+
+        mov  ax, [bx+si]
+             ^^  ^^^^^^^
+    """
     peek = tokens.peekNoTrivia()
     if peek.type == "lbracket":
         return parseMemory(tokens)
@@ -153,6 +158,11 @@ def parseArgument(tokens):
         return parseLiteral(tokens)
 
 def parseArgumentList(tokens):
+    """ Parse an instruction's argument list:
+
+        mov  ax, [bx+si]
+             ^^^^^^^^^^^
+    """
     results = []
     while not tokens.isTrivia():
         if len(results) == 0:
@@ -168,12 +178,22 @@ def parseArgumentList(tokens):
     return SeparatedList(results)
 
 def parseMemory(tokens):
+    """ Parse a memory location in brackets:
+
+        mov  ax, [bx+si]
+                 ^^^^^^^
+    """
     lbracket = tokens.nextNoTrivia()
     addr = parseAddress(tokens)
     rbracket = tokens.nextNoTrivia()
     return MemoryNode(lbracket, addr, rbracket)
 
 def parseAddress(tokens):
+    """ Parse an address inside a memory location:
+
+        mov  ax, [bx+si]
+                  ^^^^^
+    """
     base = parseLiteral(tokens)
     op = tokens.peekNoTrivia()
     if op.type == "asterisk":
@@ -193,6 +213,11 @@ def parseAddress(tokens):
         return AddressNode(base, None, None, None, None)
 
 def parseLiteral(tokens):
+    """ Parse a literal value in an instruction:
+
+        mov  ax, 123
+             ^^  ^^^
+    """
     token = tokens.nextNoTrivia()
     if token.type == "integer":
         return IntegerNode(token)
@@ -200,7 +225,13 @@ def parseLiteral(tokens):
         return IdentifierNode(token)
 
 def parseInstruction(tokens):
-    """Parse a label or an instruction."""
+    """ Parse a label or an instruction.
+    
+        example:
+        ^^^^^^^^
+            mov eax, ebx
+            ^^^^^^^^^^^^
+    """
 
     first = tokens.nextNoTrivia()
 
