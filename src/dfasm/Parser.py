@@ -6,9 +6,11 @@ class TokenStream(object):
         self.index = 0
 
     def peek(self):
+        """ Peeks a token from the token stream. """
         return self.tokens[self.index]
 
     def peekNoTrivia(self):
+        """ Peeks a non-trivia token from the token stream. """
         result = self.peek()
         i = 1
         while result.isTrivia():
@@ -17,12 +19,15 @@ class TokenStream(object):
         return result
 
     def isEmpty(self):
+        """ Finds out if the token stream is empty. """
         return self.index >= len(self.tokens)
 
     def isTrivia(self):
+        """ Finds out if all future tokens in the token stream are trivia. """
         return self.isEmpty() or all([item.isTrivia() for item in self.tokens[self.index:]])
 
     def nextToken(self):
+        """ Reads the next token from the token stream. """
         if self.index >= len(self.tokens):
             raise StopIteration
         i = self.index
@@ -30,10 +35,12 @@ class TokenStream(object):
         return self.tokens[i]
 
     def skipTrivia(self):
+        """ Skips trivia tokens. """
         while self.peek().isTrivia():
             self.nextToken()
 
     def nextNoTrivia(self):
+        """ Reads the next non-trivia token. """
         self.skipTrivia()
         return self.nextToken()
             
