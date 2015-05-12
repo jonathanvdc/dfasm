@@ -1,12 +1,15 @@
 import Automata
 
-class Token:
+class Token(object):
     def __init__(self, contents, type):
         self.contents = contents
         self.type = type
 
     def isTrivia(self):
         return self.type == 'whitespace' or self.type == 'comment' or self.type == 'newline'
+
+    def __str__(self):
+        return self.contents
 
     def __repr__(self):
         return 'Token(%r, %r)' % (self.contents, self.type)
