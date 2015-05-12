@@ -50,7 +50,7 @@ class IntegerNode(LiteralNode):
     """ Describes an integer syntax node. """
 
     def __repr__(self):
-        return "IntegerNode(%r)" % repr(self.token)
+        return "IntegerNode(%r)" % self.token
 
 class IdentifierNode(LiteralNode):
     """ Describes an identifier syntax node. """
