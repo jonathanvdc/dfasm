@@ -6,8 +6,7 @@ class Token:
         self.type = type
 
     def isTrivia(self):
-        # TODO: how do we mark comments as trivia?
-        return self.type == 'whitespace'
+        return self.type == 'whitespace' or self.type == 'comment' or self.type == 'newline'
 
     def __repr__(self):
         return 'Token(%r, %r)' % (self.contents, self.type)
@@ -37,7 +36,8 @@ def processText(text):
 asmRegexes = {
     "identifier": "(_+c)(_+c+n)*",
     "integer": "n*",
-    "whitespace": "( +\n+\r+\t)*",
+    "whitespace": "( +\r+\t)*",
+    "newline" : "\n*",
     "lparen": "\\(",
     "rparen": "\\)",
     "lbracket": "[",
@@ -85,4 +85,22 @@ def lex(text, regexes):
         size = newSize
     return results
 
-lexAsm = lambda text: lex(text, asmRegexes)
+def combineTokens(tokens, type):
+    return Token("".join(map(lambda x: x.contents, tokens)), type)
+
+def processComments(tokens):
+    results = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i].type == "semicolon":
+            commentTokens = []
+            while i < len(tokens) and tokens[i].type != "newline":
+                commentTokens.append(tokens[i])
+                i += 1
+            results.append(combineTokens(commentTokens, "comment"))
+        else:
+            results.append(tokens[i])
+            i += 1
+    return results
+
+lexAsm = lambda text: processComments(lex(text, asmRegexes))
