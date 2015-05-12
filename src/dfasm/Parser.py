@@ -132,7 +132,18 @@ class InstructionNode(object):
         return str(self.mnemonic) + " " + str(self.argumentList)
 
     def __repr__(self):
-        return "InstructionNode(" + repr(self.mnemonic) + ", " + repr(self.argumentList) + ")"
+        return "InstructionNode(%r, %r)" % (self.mnemonic, self.argumentList)
+
+class LabelNode(object):
+    """ Describes a label syntax node. """
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return str(self.name) + ":"
+
+    def __repr__(self):
+        return "LabelNode(%r)" % self.name
 
 def parseArgument(tokens):
     peek = tokens.peekNoTrivia()
@@ -189,6 +200,17 @@ def parseLiteral(tokens):
         return IdentifierNode(token)
 
 def parseInstruction(tokens):
-    mnemonic = tokens.nextNoTrivia()
+    """Parse a label or an instruction."""
+
+    first = tokens.nextNoTrivia()
+
+    # If a colon follows the first token, this is a label.
+    if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":
+        label = LabelNode(first)
+        # Skip said colon.
+        tokens.nextNoTrivia()
+        return label
+
+    # Otherwise it's just an instruction.
     argList = parseArgumentList(tokens)
-    return InstructionNode(mnemonic, argList)
+    return InstructionNode(first, argList)
