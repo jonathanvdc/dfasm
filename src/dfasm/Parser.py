@@ -50,13 +50,13 @@ class IntegerNode(LiteralNode):
     """ Describes an integer syntax node. """
 
     def __repr__(self):
-        return "IntegerNode(" + repr(self.token) + ")"
+        return "IntegerNode(%r)" % repr(self.token)
 
 class IdentifierNode(LiteralNode):
     """ Describes an identifier syntax node. """
 
     def __repr__(self):
-        return "IdentifierNode(" + repr(self.token) + ")"
+        return "IdentifierNode(%r)" % self.token
 
 class AddressNode(object):
     """ Defines a syntax node that captures an address expression. """
@@ -106,7 +106,7 @@ class SeparatedNode(object):
             return str(self.node)
 
     def __repr__(self):
-        return "SeparatedNode(" + repr(self.separator) + ", " + repr(self.node) + ")"
+        return "SeparatedNode(%r, %r)" % (self.separator, self.node)
 
 class SeparatedList(object):
     """ Defines a list of separated syntax nodes. """
@@ -120,7 +120,7 @@ class SeparatedList(object):
         return "".join(map(str, self.nodes))
 
     def __repr__(self):
-        return "SeparatedList(" + repr(self.nodes) + ")"
+        return "SeparatedList(%r)" % self.nodes
 
 class InstructionNode(object):
     """ Describes an instruction syntax node. """
