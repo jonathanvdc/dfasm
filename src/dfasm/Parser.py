@@ -136,20 +136,21 @@ class InstructionNode(object):
 
 class LabelNode(object):
     """ Describes a label syntax node. """
-    def __init__(self, name):
+    def __init__(self, name, colon):
         self.name = name
+        self.colon = colon
 
     def __str__(self):
-        return str(self.name) + ":"
+        return str(self.name) + str(self.colon)
 
     def __repr__(self):
-        return "LabelNode(%r)" % self.name
+        return "LabelNode(%r, %r)" % (self.name, self.colon)
 
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
 
         mov  ax, [bx+si]
-             ^^  ^^^^^^^
+             ^~  ^~~~~~~
     """
     peek = tokens.peekNoTrivia()
     if peek.type == "lbracket":
@@ -161,7 +162,7 @@ def parseArgumentList(tokens):
     """ Parse an instruction's argument list:
 
         mov  ax, [bx+si]
-             ^^^^^^^^^^^
+             ^~~~~~~~~~~
     """
     results = []
     while not tokens.isTrivia():
@@ -181,7 +182,7 @@ def parseMemory(tokens):
     """ Parse a memory location in brackets:
 
         mov  ax, [bx+si]
-                 ^^^^^^^
+                 ^~~~~~~
     """
     lbracket = tokens.nextNoTrivia()
     addr = parseAddress(tokens)
@@ -192,7 +193,7 @@ def parseAddress(tokens):
     """ Parse an address inside a memory location:
 
         mov  ax, [bx+si]
-                  ^^^^^
+                  ^~~~~
     """
     base = parseLiteral(tokens)
     op = tokens.peekNoTrivia()
@@ -216,7 +217,7 @@ def parseLiteral(tokens):
     """ Parse a literal value in an instruction:
 
         mov  ax, 123
-             ^^  ^^^
+             ^~  ^~~
     """
     token = tokens.nextNoTrivia()
     if token.type == "integer":
@@ -228,18 +229,16 @@ def parseInstruction(tokens):
     """ Parse a label or an instruction.
     
         example:
-        ^^^^^^^^
+        ^~~~~~~~
             mov eax, ebx
-            ^^^^^^^^^^^^
+            ^~~~~~~~~~~~
     """
 
     first = tokens.nextNoTrivia()
 
     # If a colon follows the first token, this is a label.
     if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":
-        label = LabelNode(first)
-        # Skip said colon.
-        tokens.nextNoTrivia()
+        label = LabelNode(first, tokens.nextNoTrivia())
         return label
 
     # Otherwise it's just an instruction.
