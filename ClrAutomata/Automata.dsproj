@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Project Name="Automata">
+  <Setter Property="TargetPlatform" Value="clr" />
+  <Setter Property="AssemblyName" Value="Automata" />
+  <Option Key="pedantic" Value="true" />
+  <Option Key="generate-static" Value="true" />
+  <Option Key="docs" Value="xml" />
+  <ItemGroup>
+    <RuntimeLibrary Include="PlatformRT" />
+    <RuntimeLibrary Include="PortableRT" />
+    <RuntimeLibrary Include="System" />
+    <RuntimeLibrary Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DFAutomaton.ds" />
+    <Compile Include="IAutomaton.ds" />
+    <Compile Include="Optional.ds" />
+    <Compile Include="ENAutomaton.ds" />
+    <Compile Include="Regex.ds" />
+    <Compile Include="RegexParser.ds" />
+    <Compile Include="UnionRegex.ds" />
+    <Compile Include="ConcatRegex.ds" />
+    <Compile Include="ClosureRegex.ds" />
+    <Compile Include="StateSet.ds" />
+    <Compile Include="TransitionMap.ds" />
+    <Compile Include="Interop.ds" />
+  </ItemGroup>
+</Project>

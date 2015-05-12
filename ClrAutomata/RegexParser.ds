@@ -1,0 +1,126 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Automata
+{
+    public class StringParser
+    {
+        public const this(set string val, set int index);
+
+        private string val;
+        private int index;
+
+        public bool IsEmpty
+        {
+            const get return index >= val.Length;
+        }
+
+        public char Read()
+        {
+            var result = val[index];
+            Advance(1);
+            return result;
+        }
+
+        public void Advance(int Offset)
+        {
+            index += Offset;
+        }
+    }
+
+    public static class RegexParser
+    {
+        private IRegex ParseSimpleRegex(StringParser Input, char val)
+        {
+        	if (val == '\\' && !Input.IsEmpty)
+        	{
+        		val = Input.Read();
+        		if (val == 'e')
+        		{
+        			return EpsilonRegex;
+        		}
+        		else if (val == 'p')
+        		{
+        			return PhiRegex;
+        		}
+        	}
+        	return new LiteralRegex(val);
+        }
+
+        private IRegex ParsePrimaryRegex(StringParser Input, char val)
+        {
+        	IRegex first;
+
+        	if (val == '(')
+        	{
+        		first = ParseRegex(Input); // RParen has been parsed, ParseRegex will take care of LParen
+        	}
+        	else
+        	{
+        		first = ParseSimpleRegex(Input, val);
+        	}
+
+        	if (Input.IsEmpty) { return first; } // We're done here
+            val = Input.Read();
+
+        	if (val == '*')
+        	{
+        		var closure = new ClosureRegex(first);
+        		if (Input.IsEmpty)
+                {
+                    return closure;
+                }
+        		else
+                {
+                    val = Input.Read();
+                    if (val == ')' || val == '+')
+            		{
+                        Input.Advance(-1);
+            			return closure;
+            		}
+                    return new ConcatRegex(closure, ParsePrimaryRegex(Input, val));
+                }
+        	}
+        	else if (val != ')' && val != '+')
+        	{
+        		var second = ParsePrimaryRegex(Input, val);
+        		return new ConcatRegex(first, second);
+        	}
+        	else // These don't belong to us.
+        	{
+        		Input.Advance(-1);
+        		return first;
+        	}
+        }
+
+        private IRegex ParseRegex(StringParser Input, char val)
+        {
+        	IRegex first = ParsePrimaryRegex(Input, val);
+
+        	if (Input.IsEmpty) { return first; } // Nec plus ultra
+            val = Input.Read();
+
+        	if (val == '+')
+        	{
+        		var second = ParseRegex(Input);
+        		return new UnionRegex(first, second);
+        	}
+        	else
+        	{
+        		return first;
+        	}
+        }
+
+        public IRegex ParseRegex(StringParser Input)
+        {
+        	return ParseRegex(Input, Input.Read());
+        }
+
+        public IRegex ParseRegex(string Input)
+        {
+            return ParseRegex(new StringParser(Input, 0));
+        }
+    }
+}

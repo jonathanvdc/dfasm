@@ -1,0 +1,62 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Automata
+{
+    public class TransitionMap<T1, T2, T3> : [Tuple<T1, T2, T3>]
+    {
+        public const this()
+        {
+            this.transitions = new Dictionary<KeyValuePair<T1, T2>, T3>();
+        }
+
+        private Dictionary<KeyValuePair<T1, T2>, T3> transitions;
+
+        public T3 this[T1 State, T2 Symbol]
+        {
+            const get
+                return transitions[new KeyValuePair<T1, T2>(State, Symbol)];
+            set
+                transitions[new KeyValuePair<T1, T2>(State, Symbol)] = value;
+        }
+
+        public const bool Contains(T1 State, T2 Symbol)
+        {
+            return transitions.ContainsKey(new KeyValuePair<T1, T2>(State, Symbol));
+        }
+
+        public void Add(T1 State, T2 Symbol, T3 Result)
+        {
+            transitions.Add(new KeyValuePair<T1, T2>(State, Symbol), Result);
+        }
+
+        public void Add(Tuple<T1, T2, T3> Item)
+        {
+            Add(Item.Item1, Item.Item2, Item.Item3);
+        }
+
+        public void Add(TransitionMap<T1, T2, T3> Map)
+        {
+            foreach (var item in Map)
+                Add(item);
+        }
+
+        private static const Tuple<T1, T2, T3> ToTuple(KeyValuePair<KeyValuePair<T1, T2>, T3> Pair)
+        {
+            return new Tuple<T1, T2, T3>(Pair.Key.Key, Pair.Key.Value, Pair.Value);
+        }
+
+        public const [<Tuple<T1, T2, T3>>] GetGenericEnumerator() : IEnumerable<Tuple<T1, T2, T3>>.GetEnumerator
+        {
+            return Enumerable.Select<KeyValuePair<KeyValuePair<T1, T2>, T3>, Tuple<T1, T2, T3>>(
+                    transitions, ToTuple).GetEnumerator();
+        }
+
+        public const System.Collections.IEnumerator GetObjectEnumerator() : System.Collections.IEnumerable.GetEnumerator
+        {
+            return GetGenericEnumerator();
+        }
+    }
+}

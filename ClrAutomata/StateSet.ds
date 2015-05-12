@@ -1,0 +1,98 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Automata
+{
+    public class StateSet<T> : [T]
+    {
+        public const this()
+        {
+            this.Set = new HashSet<T>();
+            this.SetComparer = HashSet<T>.CreateSetComparer();
+        }
+        public const this(T Value)
+        {
+            this.Set = new HashSet<T>();
+            this.SetComparer = HashSet<T>.CreateSetComparer();
+            Add(Value);
+        }
+        public const this([T] Values)
+        {
+            this.Set = new HashSet<T>(Values);
+            this.SetComparer = HashSet<T>.CreateSetComparer();
+        }
+
+        public HashSet<T> Set { const get; private set; }
+        public IEqualityComparer<HashSet<T>> SetComparer { const get; private set; }
+
+        public T First
+        {
+            get { return Enumerable.First<T>(Set); }
+        }
+
+        public T Pop()
+        {
+            var val = First;
+            Remove(val);
+            return val;
+        }
+
+        public int Count
+        {
+            const get return Set.Count;
+        }
+
+        public bool IsEmpty
+        {
+            const get return Count == 0;
+        }
+
+        public const bool Contains(T Value)
+        {
+            return Set.Contains(Value);
+        }
+
+        public void Add(T Value)
+        {
+            Set.Add(Value);
+        }
+        public void UnionWith([T] Items)
+        {
+            Set.UnionWith(Items);
+        }
+
+        public bool Remove(T Value)
+        {
+            return Set.Remove(Value);
+        }
+
+        public const override int GetHashCode()
+        {
+            return SetComparer.GetHashCode(Set);
+        }
+
+        public const override bool Equals(object Other)
+        {
+            if (Other is StateSet<T>)
+            {
+                return SetComparer.Equals(Set, ((StateSet<T>)Other).Set);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public const [<T>] GetGenericEnumerator() : IEnumerable<T>.GetEnumerator
+        {
+            return Set.GetEnumerator();
+        }
+
+        public const System.Collections.IEnumerator GetObjectEnumerator() : System.Collections.IEnumerable.GetEnumerator
+        {
+            return GetGenericEnumerator();
+        }
+    }
+}

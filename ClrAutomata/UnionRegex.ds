@@ -1,0 +1,38 @@
+using System;
+using System.Collections.Generic;
+
+namespace Automata
+{
+    public struct UnionRegex : IRegex
+    {
+        public const this(set IRegex Left, set IRegex Right);
+
+        public IRegex Left;
+        public IRegex Right;
+
+        public const string ToString()
+        {
+            return Left.ToString() + "+" + Right.ToString();
+        }
+
+        public const ENFAutomaton<RegexState, char> ToENFAutomaton()
+        {
+            var startState = new RegexState();
+
+            var leftAutomaton = Left.ToENFAutomaton();
+            var rightAutomaton = Right.ToENFAutomaton();
+
+            var transTable = leftAutomaton.TransitionFunction;
+            transTable.Add(rightAutomaton.TransitionFunction);
+
+            var redirectedStates = new StateSet<RegexState>(leftAutomaton.StartState);
+            redirectedStates.Add(rightAutomaton.StartState);
+            transTable.Add(startState, default(Optional<char>), redirectedStates);
+
+            var acceptingStates = leftAutomaton.AcceptingStates;
+            acceptingStates.UnionWith(rightAutomaton.AcceptingStates);
+
+            return new ENFAutomaton<RegexState, char>(startState, acceptingStates, transTable);
+        }
+    }
+}

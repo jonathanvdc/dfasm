@@ -1,0 +1,190 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Automata
+{
+    /// <summary>
+    /// Defines a non-deterministic finite automaton with epsilon transitions.
+    /// </summary>
+    public struct ENFAutomaton<TState, TChar> : IAutomaton<TChar>
+    {
+        alias TransitionTable = TransitionMap<TState, Optional<TChar>, StateSet<TState>>;
+
+        public const this(set TState StartState,
+            set StateSet<TState> AcceptingStates,
+            set TransitionTable TransitionFunction);
+
+        public TState StartState { const get; private set; }
+        public StateSet<TState> AcceptingStates { const get; private set; }
+        public TransitionTable TransitionFunction { const get; private set; }
+
+        public const ENFAutomaton<TNState, TNChar> Rename<TNState, TNChar>(TNState(TState) StateRenamer, TNChar(TChar) CharRenamer)
+        {
+            alias NewTransitionTable = TransitionMap<TNState, Optional<TNChar>, StateSet<TNState>>;
+
+            TNState newStart = StateRenamer(StartState);
+            var newAccept = new StateSet<TNState>();
+            foreach (var val in AcceptingStates)
+            {
+                newAccept.Add(StateRenamer(val));
+            }
+            var newTransMap = new NewTransitionTable();
+            foreach (var item in TransitionFunction)
+            {
+                var renamedOriginState = StateRenamer(item.Item1);
+                var renamedTargetStates = new StateSet<TNState>();
+                foreach (var state in item.Item3)
+                {
+                    renamedTargetStates.Add(StateRenamer(state));
+                }
+                var renamedSymbol = item.Item2.Rename<TNChar>(CharRenamer);
+                newTransMap[renamedOriginState, renamedSymbol] = renamedTargetStates;
+            }
+            return new ENFAutomaton<TNState, TNChar>(newStart, newAccept, newTransMap);
+        }
+
+        public const StateSet<TState> PerformTransition(TState State, Optional<TChar> Character)
+        {
+            if (TransitionFunction.Contains(State, Character))
+            {
+                return TransitionFunction[State, Character];
+            }
+            else
+            {
+                return new StateSet<TState>();
+            }
+        }
+        public const StateSet<TState> PerformAllTransitions([TState] States, Optional<TChar> Character)
+        {
+            var results = new StateSet<TState>();
+            foreach (var val in States)
+            {
+                results.UnionWith(PerformTransition(val, Character));
+            }
+            return results;
+        }
+        public const StateSet<TState> Eclose(TState State)
+        {
+            var results = new StateSet<TState>();
+            var step = new StateSet<TState>();
+            step.Add(State);
+            while (step.Count != 0)
+            {
+                var first = step.First;
+                results.Add(first);
+                step.Remove(first);
+
+                var trans = PerformTransition(first, default(Optional<TChar>));
+                foreach (var item in trans)
+                    if (!results.Contains(item))
+                {
+                    step.Add(item);
+                }
+            }
+            return results;
+        }
+        public const StateSet<TState> Eclose([TState] States)
+        {
+            var vals = new StateSet<TState>();
+            foreach (var item in States)
+            {
+                vals.UnionWith(Eclose(item));
+            }
+            return vals;
+        }
+
+        public const StateSet<TState> PerformExtendedTransition(TState State, [TChar] Characters)
+        {
+            var states = Eclose(State);
+            foreach (var item in Characters)
+            {
+                var optItem = new Optional<TChar>(item);
+                states = Eclose(PerformAllTransitions(states, optItem));
+            }
+            return states;
+        }
+
+        public const bool ContainsAcceptingState([TState] States)
+        {
+            var intersection = Enumerable.Intersect<TState>(AcceptingStates, States);
+            return Enumerable.Any<TState>(intersection);
+        }
+
+        public const bool Accepts([TChar] Characters)
+        {
+            return ContainsAcceptingState(PerformExtendedTransition(StartState, Characters));
+        }
+
+        public const StateSet<TState> GetStates()
+        {
+            var results = new StateSet<TState>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc)
+            {
+                results.Add(item.Item1);
+                results.UnionWith(item.Item3);
+            }
+            return results;
+        }
+
+        public const StateSet<TChar> GetAlphabet()
+        {
+            var results = new StateSet<TChar>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc)
+            {
+                if (item.Item2.HasValue)
+                    results.Add(item.Item2.Value);
+            }
+            return results;
+        }
+
+        /// <summary>
+        /// Performs the modified subset construction on this automaton.
+        /// </summary>
+        public const DFAutomaton<StateSet<TState>, TChar> ToDFAutomaton()
+        {
+            return ToDFAutomaton(GetAlphabet());
+        }
+
+        /// <summary>
+        /// Performs the modified subset construction based on the given alphabet.
+        /// </summary>
+        private const DFAutomaton<StateSet<TState>, TChar> ToDFAutomaton(StateSet<TChar> Alphabet)
+        {
+            var startState = Eclose(StartState);
+            var transMap = new TransitionMap<StateSet<TState>, TChar, StateSet<TState>>();
+            var accStates = new StateSet<StateSet<TState>>();
+
+            var processedStates = new StateSet<StateSet<TState>>();
+            var nextStates = new StateSet<StateSet<TState>>();
+            nextStates.Add(startState);
+
+            while (!nextStates.IsEmpty)
+            {
+                var first = nextStates.First;
+                var accumulatedStates = new StateSet<StateSet<TState>>();
+                if (!processedStates.Contains(first))
+                {
+                    foreach (var item in Alphabet)
+                    {
+                        var trans = Eclose(PerformAllTransitions(first, new Optional<TChar>(item)));
+                        accumulatedStates.Add(trans);
+                        transMap[first, item] = trans;
+                    }
+                    processedStates.Add(first);
+                    if (ContainsAcceptingState(first))
+                    {
+                        accStates.Add(first);
+                    }
+                }
+                nextStates.Remove(first);
+                nextStates.UnionWith(accumulatedStates);
+            }
+
+            return new DFAutomaton<StateSet<TState>, TChar>(startState, accStates, transMap);
+        }
+    }
+}

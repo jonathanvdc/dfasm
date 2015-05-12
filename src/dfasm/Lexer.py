@@ -56,9 +56,8 @@ asmRegexes = {
 
 # Compile regexes to automata.
 def makeDFA(regex):
-    compiled = Automata.Interop.CompileRegex(regex)
+    compiled = Automata.Interop.Instance.CompileRegex(regex)
     dfa = compiled.Optimize()
-    compiled.Dispose()
     return dfa
 
 asmRegexes = {type: makeDFA(regex) for type, regex in asmRegexes.items()}

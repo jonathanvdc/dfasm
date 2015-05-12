@@ -1,0 +1,236 @@
+using System;
+using System.Collections.Generic;
+
+namespace Automata
+{
+    /// <summary>
+    /// Defines a deterministic finite automaton.
+    /// </summary>
+    public struct DFAutomaton<TState, TChar> : IAutomaton<TChar>
+        where TState : object
+        where TChar : object
+    {
+        alias TransitionTable = TransitionMap<TState, TChar, TState>;
+
+        public const this(set TState StartState,
+            set StateSet<TState> AcceptingStates,
+            set TransitionTable TransitionFunction);
+
+        public TState StartState { const get; private set; }
+        public StateSet<TState> AcceptingStates { const get; private set; }
+        public TransitionTable TransitionFunction { const get; private set; }
+
+        public const TState PerformTransition(TState State, TChar Character)
+        {
+            return TransitionFunction[State, Character];
+        }
+        public const TState PerformExtendedTransition(TState State, [TChar] Characters)
+        {
+            var result = State;
+            foreach (var item in Characters)
+            {
+                result = PerformTransition(result, item);
+            }
+            return result;
+        }
+
+        public const DFAutomaton<TNState, TNChar> Rename<TNState, TNChar>(TNState(TState) StateRenamer, TNChar(TChar) CharRenamer)
+        {
+            TNState newStart = StateRenamer(StartState);
+            var newAccept = new StateSet<TNState>();
+            var oldAccept = AcceptingStates;
+            foreach (var item in oldAccept)
+            {
+                newAccept.Add(StateRenamer(item));
+            }
+            var currentTransFun = TransitionFunction;
+            var newTransMap = new TransitionMap<TNState, TNChar, TNState>();
+            foreach (var item in currentTransFun)
+            {
+                newTransMap[StateRenamer(item.Item1), CharRenamer(item.Item2)] = StateRenamer(item.Item3);
+            }
+            return new DFAutomaton<TNState, TNChar>(newStart, newAccept, newTransMap);
+        }
+
+        public const StateSet<TState> GetStates()
+        {
+            var results = new StateSet<TState>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc)
+            {
+                results.Add(item.Item1);
+                results.Add(item.Item3);
+            }
+            return results;
+        }
+
+        public const StateSet<TChar> GetAlphabet()
+        {
+            var results = new StateSet<TChar>();
+            var transfunc = TransitionFunction;
+            foreach (var item in transfunc)
+            {
+                results.Add(item.Item2);
+            }
+            return results;
+        }
+
+        public const bool IsAcceptingState(TState State)
+        {
+            return AcceptingStates.Contains(State);
+        }
+
+        public const bool Accepts([TChar] Characters)
+        {
+            return IsAcceptingState(PerformExtendedTransition(StartState, Characters));
+        }
+
+        public const Dictionary<TState, StateSet<TState>> TFAPartition()
+        {
+            var states = GetStates();
+            var symbols = GetAlphabet();
+            var accepting = AcceptingStates;
+
+            var statePairs = new StateSet<KeyValuePair<TState, TState>>();
+            foreach (var a in states)
+            foreach (var b in states)
+                statePairs.Add(new KeyValuePair<TState, TState>(a, b));
+
+            var distinguishablePairs = new HashSet<KeyValuePair<TState, TState>>();
+            foreach (var a in states)
+            {
+                if (!accepting.Contains(a))
+                {
+                    foreach (var b in accepting)
+                    {
+                        distinguishablePairs.Add(new KeyValuePair<TState, TState>(a, b));
+                        distinguishablePairs.Add(new KeyValuePair<TState, TState>(b, a));
+                    }
+                }
+            }
+
+            var unexaminedPairs = new StateSet<KeyValuePair<TState, TState>>(distinguishablePairs);
+            while (!unexaminedPairs.IsEmpty)
+            {
+                var ab = unexaminedPairs.Pop();
+                foreach (var sym in symbols)
+                {
+                    foreach (var pq in statePairs)
+                    {
+                        if (distinguishablePairs.Contains(pq))
+                            next;
+
+                        if (PerformTransition(pq.Key, sym) == ab.Key
+                            && PerformTransition(pq.Value, sym) == ab.Value)
+                        {
+                            distinguishablePairs.Add(pq);
+                            unexaminedPairs.Add(pq);
+                        }
+                    }
+                }
+            }
+
+            var partition = new Dictionary<TState, StateSet<TState>>();
+            foreach (var q in states)
+                partition[q] = new StateSet<TState>(q);
+
+            foreach (var ab in statePairs)
+            {
+                if (!distinguishablePairs.Contains(ab))
+                {
+                    var firstSet = partition[ab.Key];
+                    var secondSet = partition[ab.Value];
+                    firstSet.UnionWith(secondSet); // <-- Evil mutable sets right here.
+                    partition[ab.Key] = firstSet;
+                    partition[ab.Value] = firstSet; // Set second key to unified set
+                }
+            }
+
+            return partition;
+        }
+
+        public const StateSet<TState> ReachableStates()
+        {
+            var todo = new StateSet<TState>(StartState);
+            var reachable = new StateSet<TState>();
+            var alpha = GetAlphabet();
+            while (!todo.IsEmpty)
+            {
+                var q = todo.Pop();
+                reachable.Add(q);
+                foreach (var sym in alpha)
+                {
+                    var newState = PerformTransition(q, sym);
+                    if (!reachable.Contains(newState))
+                        todo.Add(newState);
+                }
+            }
+            return reachable;
+        }
+
+        public const DFAutomaton<StateSet<TState>, TChar> Optimize()
+        {
+            var reachable = ReachableStates();
+            var filteredTable = new TransitionTable();
+            var oldTable = TransitionFunction;
+            foreach (var item in oldTable)
+            {
+                var sourceState = item.Item1;
+                if (reachable.Contains(sourceState))
+                    filteredTable[sourceState, item.Item2] = item.Item3;
+            }
+
+            var partition = TFAPartition();
+
+            var optimalTable = new TransitionMap<StateSet<TState>, TChar, StateSet<TState>>();
+
+            foreach (var item in filteredTable)
+            {
+                var sourceState = item.Item1;
+                var symbol = item.Item2;
+                var targetState = item.Item3;
+                optimalTable[partition[sourceState], symbol] = partition[targetState];
+            }
+
+            var final = new StateSet<StateSet<TState>>();
+            foreach (var q in AcceptingStates)
+                final.Add(partition[q]);
+
+            return new DFAutomaton<StateSet<TState>, TChar>(
+                partition[StartState], final, optimalTable);
+        }
+
+        private static KeyValuePair<TState, bool> TagTrue(TState State)
+        {
+            return new KeyValuePair<TState, bool>(State, true);
+        }
+
+        private static KeyValuePair<TState, bool> TagFalse(TState State)
+        {
+            return new KeyValuePair<TState, bool>(State, false);
+        }
+
+        private static TChar Id(TChar Value)
+        {
+            return Value;
+        }
+
+        public const bool EquivalentTo(DFAutomaton<TState, TChar> other)
+        {
+            var taggedThis  = Rename<KeyValuePair<TState, bool>, TChar>(TagFalse, Id);
+            var taggedOther = other.Rename<KeyValuePair<TState, bool>, TChar>(TagTrue, Id);
+
+            var mergedTable = taggedThis.TransitionFunction;
+            mergedTable.Add(taggedOther.TransitionFunction);
+
+            var mergedAcceptingStates = taggedThis.AcceptingStates;
+            mergedAcceptingStates.UnionWith(taggedOther.AcceptingStates);
+
+            var mergedAutomaton = new DFAutomaton<KeyValuePair<TState, bool>, TChar>(
+                taggedThis.StartState, mergedAcceptingStates, mergedTable);
+            var partition = mergedAutomaton.TFAPartition();
+
+            return partition[taggedThis.StartState] == partition[taggedOther.StartState];
+        }
+    }
+}

@@ -11,8 +11,8 @@ namespace CompileRegexCs
     {
         public static void Main(string[] args)
         {
-            var handle = Automata.Interop.CompileRegex("a+b");
-            Console.WriteLine(handle.GetInitialState().AddInput("a").Accepts());
+            var handle = Automata.Interop.Instance.CompileRegex("c*\n").Optimize();
+            Console.WriteLine(handle.GetInitialState().AddInput("ccc").Accepts());
         }
     }
 }

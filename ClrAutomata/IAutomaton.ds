@@ -1,0 +1,13 @@
+namespace Automata
+{
+    /// <summary>
+    /// Defines common automaton functionality.
+    /// </summary>
+    public interface IAutomaton<TChar>
+    {
+        /// <summary>
+        /// Gets a boolean value that indicates whether the automaton accepts the given string.
+        /// </summary>
+        const bool Accepts([TChar] Characters);
+    }
+}

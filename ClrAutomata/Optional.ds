@@ -1,0 +1,44 @@
+namespace Automata
+{
+    public struct Optional<T>
+        where T : object
+    {
+        public const this(set T Value) { HasValue = true; }
+
+        public bool HasValue;
+        public T Value;
+
+        public const Optional<TNew> Rename<TNew>(TNew(T) Function)
+        {
+            if (HasValue)
+            {
+                return new Optional<TNew>(Function(Value));
+            }
+            else
+            {
+                return default(Optional<TNew>);
+            }
+        }
+
+        public const bool Equals(Optional<T> Other)
+        {
+            if (HasValue)
+            {
+                return Other.HasValue && Value == Other.Value;
+            }
+            else return !Other.HasValue;
+        }
+
+        public override const bool Equals(object Other)
+        {
+            if (Other is Optional<T>)
+            {
+                return Equals((Optional<T>)Other);
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+}

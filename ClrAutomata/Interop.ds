@@ -1,0 +1,119 @@
+using System;
+using System.Collections.Generic;
+
+namespace Automata
+{
+    public class DFAHandle
+    {
+        public const this(set DFAutomaton<int, char> Automaton)
+        {
+            this.Alphabet = Automaton.GetAlphabet();
+        }
+
+        public DFAutomaton<int, char> Automaton { const get; private set; }
+        public StateSet<char> Alphabet { const get; private set; }
+        public [int] States { const get return Automaton.GetStates(); }
+
+        public const DFAState GetInitialState()
+        {
+            return new DFAState(this, Automaton.StartState, false);
+        }
+
+        public const DFAHandle Optimize()
+        {
+            return new DFAHandle(Interop.IndexAutomaton<StateSet<int>>(Automaton.Optimize()));
+        }
+    }
+
+    public struct DFAState
+    {
+        public const this(set DFAHandle Automaton, set int state, set bool isInvalid);
+
+        public DFAHandle Automaton { const get; private set; }
+
+        public const bool Accepts()
+        {
+            return !isInvalid && Automaton.Automaton.IsAcceptingState(state);
+        }
+
+        public const DFAState AddInput(string Data)
+        {
+            if (isInvalid)
+    		{
+    			return this;
+    		}
+
+    		var managed = state;
+    		int s = state;
+            var a = Automaton.Automaton;
+            for (int i = 0; i < Data.Length; i++)
+    		{
+                char item = Data[i];
+
+    			if (Automaton.Alphabet.Contains(item))
+    			{
+    				s = a.PerformTransition(s, item);
+    			}
+    			else
+    			{
+    				return new DFAState(Automaton, s, true);
+    			}
+    		}
+    		return new DFAState(Automaton, s, false);
+        }
+
+        private int state;
+        private bool isInvalid;
+    }
+
+    public class IndexAutomatonClosure<T>
+        where T : object
+    {
+        public const this()
+        {
+            this.indices = new Dictionary<T, int>();
+        }
+
+        private Dictionary<T, int> indices;
+
+        public const int Index(T Value)
+        {
+            if (indices.ContainsKey(Value))
+                return indices[Value];
+            else
+            {
+                int i = indices.Count;
+                indices[Value] = i;
+                return i;
+            }
+        }
+    }
+
+    public static class Interop
+    {
+        private const T Id<T>(T Value)
+        {
+            return Value;
+        }
+
+        public const DFAutomaton<int, char> IndexAutomaton<T>(DFAutomaton<T, char> Automaton)
+            where T : object
+        {
+            var closure = new IndexAutomatonClosure<T>();
+            return Automaton.Rename<int, char>(closure.Index, Id<char>);
+        }
+
+        public const DFAHandle CompileRegex(string Regex)
+        {
+            var regex = RegexParser.ParseRegex(Regex);
+
+    		var enfa = regex.ToENFAutomaton();
+
+    		var dfa = enfa.ToDFAutomaton();
+
+    		var renamedDFa = IndexAutomaton<StateSet<RegexState>>(dfa);
+
+    		return new DFAHandle(renamedDFa);
+        }
+    }
+}

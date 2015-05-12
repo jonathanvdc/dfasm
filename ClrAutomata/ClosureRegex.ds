@@ -1,0 +1,43 @@
+using System;
+using System.Collections.Generic;
+
+namespace Automata
+{
+    public struct ClosureRegex : IRegex
+    {
+        public const this(set IRegex Regex);
+
+        public IRegex Regex;
+
+        public const string ToString()
+        {
+            return "(" + Regex.ToString() + ")" + "*";
+        }
+
+        public const ENFAutomaton<RegexState, char> ToENFAutomaton()
+        {
+            var innerAutomaton = Regex.ToENFAutomaton();
+
+            var transTable = innerAutomaton.TransitionFunction;
+
+            var startState = new RegexState();
+            var endState = new RegexState();
+
+            var starTrans = new StateSet<RegexState>();
+            starTrans.Add(innerAutomaton.StartState);
+            starTrans.Add(endState);
+            transTable.Add(startState, default(Optional<char>), starTrans);
+
+            var innerEndStates = innerAutomaton.AcceptingStates;
+
+            foreach (var item in innerEndStates)
+            {
+                transTable.Add(item, default(Optional<char>), starTrans);
+            }
+
+            var acceptingStates = new StateSet<RegexState>(endState);
+
+            return new ENFAutomaton<RegexState, char>(startState, acceptingStates, transTable);
+        }
+    }
+}
