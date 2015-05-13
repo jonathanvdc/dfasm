@@ -157,6 +157,9 @@ class SeparatedNode(object):
         self.separator = separator
         self.node = node
 
+    def toOperand(self, asm):
+        return self.node.toOperand(asm)
+
     def __str__(self):
         if self.separator is not None:
             return str(self.separator) + " " + str(self.node)
@@ -173,6 +176,9 @@ class SeparatedList(object):
 
     def __iter__(self):
         return iter(map(lambda x: x.node, self.nodes))
+
+    def toOperands(self, asm):
+        return map(lambda x: x.toOperand(asm), self.nodes)
 
     def __str__(self):
         return "".join(map(str, self.nodes))

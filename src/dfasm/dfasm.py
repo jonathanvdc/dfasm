@@ -4,6 +4,7 @@ import sys
 
 import Automata
 import Instructions
+import Assembler
 from Lexer import *
 from Parser import *
 
@@ -14,3 +15,6 @@ while not sys.stdin.closed:
     instr = parseInstruction(TokenStream(lexed))
     print(instr)
     print(repr(instr))
+    print("Operands:")
+    asm = Assembler.Assembler()
+    print(repr(instr.argumentList.toOperands(asm)))

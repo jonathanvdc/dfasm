@@ -24,20 +24,15 @@ instructionBuilders = {
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
 
-    def __init__(self, nodes):
-        self.nodes = nodes
-
-    def assemble(self):
-        """ Assemble the given list of instructions and labels into bytecode
-        and return the resulting list of bytes. """
-
+    def __init__(self):
         # Maps label names to their addresses when they are encountered.
         self.labels = {}
 
         # A list of byte values representing the bytecode.
         self.code = []
-        self.index = 0
 
+        self.index = 0
+        
         # A list [(address, 'label name', func)] of replacements to make at
         # the specified addresses: this is done after processing all nodes.
         # `func` is a function that takes the address of a label and returns
@@ -45,12 +40,20 @@ class Assembler(object):
         # might append `lambda lbl: to8(lbl - here)`.
         self.replacements = []
 
-        for node in self.nodes:
-            self.process(node)
-
+    def patchLabels(self):
+        """ Patches all labels. """
         for addr, label, func in replacements:
             new = func(labels[label])
             self.code[addr:addr + len(new)] = new
+
+    def assemble(self, nodes):
+        """ Assemble the given list of instructions and labels into bytecode
+        and return the resulting list of bytes. """
+
+        for item in nodes:
+            self.process(item)
+
+        patchLabels()
 
         return self.code
 
