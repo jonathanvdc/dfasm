@@ -118,6 +118,12 @@ class ImmediateOperand(object):
         """ "Casts" this operand to match the given size. """
         return ImmediateOperand(self.value, size)
 
+    def toSigned(self):
+        return ImmediateOperand.createSigned(self.value)
+
+    def toUnsigned(self):
+        return ImmediateOperand.createUnsigned(self.value)
+
     @staticmethod
     def createSigned(value):
         if value == 0:

@@ -72,6 +72,16 @@ def writeMovImmediateInstruction(asm, args):
 
     immArg.cast(memArg.operandSize).writeDataTo(asm)
 
+def writeInterruptInstruction(asm, args):
+    if len(args) != 1:
+        raise SyntaxError("'int' takes precisely two arguments.")
+    immArg = args[0].toUnsigned()
+    if immArg.operandSize > size8:
+        raise SyntaxError("'int' must take an 8-bit operand.")
+
+    asm.write([0xcd])
+    immArg.cast(size8).writeDataTo(asm)
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
@@ -121,6 +131,7 @@ instructionBuilders = {
     "pause" : defineSimpleInstruction("pause", 0x90),
     "clc"   : defineSimpleInstruction("clc", 0xf8),
     "stc"   : defineSimpleInstruction("stc", 0xf9),
+    "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
