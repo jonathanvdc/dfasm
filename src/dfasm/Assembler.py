@@ -56,6 +56,22 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
     memArg.writeDataTo(asm)
     immArg.writeDataTo(asm)
 
+def writeMovImmediateInstruction(asm, args):
+    if len(args) != 2:
+        raise SyntaxError("'mov' takes precisely two arguments.")
+
+    memArg, immArg = args[0], args[1]
+
+    if memArg.addressingMode == "register":
+        asm.write([0xb << 4 | (int(memArg.operandSize != size8) & 0x01) << 3 | memArg.operandIndex])
+    else:
+        asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
+        mode = encodeAddressingMode(memArg.addressingMode)
+        asm.write([mode << 6 | memArg.operandIndex])
+        memArg.writeDataTo(asm)
+
+    immArg.cast(memArg.operandSize).writeDataTo(asm)
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
@@ -78,12 +94,15 @@ def defineBinaryInstruction(name, opCode):
 def defineBinaryImmediateInstruction(name, opCode):
     return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
 
+def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
+    return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args)
+
 def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     if opCode is None:
         opCode = immOpCode << 1
     binDef = defineBinaryInstruction(name, opCode)
     immDef = defineBinaryImmediateInstruction(name, immOpCode)
-    return lambda asm, args: writeAmbiguousBinaryInstruction(binDef, immDef, asm, args)
+    return defineAmbiguousInstruction(binDef, immDef)
 
 def defineExtendedBinaryInstruction(name, prefix, opCode):
     return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
@@ -102,7 +121,7 @@ instructionBuilders = {
     "pause" : defineSimpleInstruction("pause", 0x90),
     "clc"   : defineSimpleInstruction("clc", 0xf8),
     "stc"   : defineSimpleInstruction("stc", 0xf9),
-    "mov"   : defineBinaryInstruction("mov", 0x22),
+    "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
