@@ -102,7 +102,7 @@ instructionBuilders = {
     "stc"   : defineSimpleInstruction("stc", 0xf9),
     "mov"   : defineBinaryInstruction("mov", 0x22),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00, 0x00),
-    "sub"   : defineBinaryInstruction("sub", 0x0a),
+    "sub"   : defineAmbiguousBinaryInstruction("sub", 0x0a, 0x05),
     "and"   : defineBinaryInstruction("and", 0x08),
     "or"    : defineBinaryInstruction("or", 0x02),
     "xor"   : defineBinaryInstruction("xor", 0x0c),
