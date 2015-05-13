@@ -9,8 +9,8 @@ def writeSimpleInstruction(name, opCode, asm, args):
 def writeBinaryInstruction(name, opCode, asm, args):
     if len(args) != 2:
         raise SyntaxError("'" + name + "' takes precisely two arguments.")
-    reverseArgs = args[0].addressingMode != "register"
-    regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
+    reverseArgs = args[1].addressingMode != "register"
+    regArg, memArg = (args[0], args[1]) if reverseArgs else (args[1], args[0])
 
     if memArg.operandSize != regArg.operandSize:
         memArg = memArg.cast(regArg.operandSize) # Cast if necessary
@@ -21,18 +21,27 @@ def writeBinaryInstruction(name, opCode, asm, args):
     regIndex = regArg.operandIndex
     memIndex = memArg.operandIndex
 
-    opcodeByte = opCode << 2 | int(reverseArgs) & 0x01 << 1 | int(isWord) & 0x01
-    operandsByte = mode << 6 | memIndex << 3 | regIndex
+    opcodeByte = opCode << 2 | (int(reverseArgs) & 0x01) << 1 | int(isWord) & 0x01
+    operandsByte = mode << 6 | regIndex << 3 | memIndex
 
-    asm.write(opcodeByte)
-    asm.write(operandsByte)
+    asm.write([opcodeByte, operandsByte])
     memArg.writeDataTo(asm)
 
-def createSimpleInstructionBuilder(name, opCode):
+def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
+    asm.write([prefix])
+    instructionBuilder(asm, args)
+
+def definePrefixedInstruction(prefix, instructionBuilder):
+    return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
+
+def defineSimpleInstruction(name, opCode):
     return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
 
-def createBinaryInstructionBuilder(name, opCode):
+def defineBinaryInstruction(name, opCode):
     return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args)
+
+def defineExtendedBinaryInstruction(name, prefix, opCode):
+    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
 
 addressingModeEncodings = {
     "register" : 3,
@@ -45,12 +54,17 @@ def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
 instructionBuilders = {
-    "pause" : createSimpleInstructionBuilder("pause", 0x90),
-    "clc"   : createSimpleInstructionBuilder("clc", 0xf8),
-    "stc"   : createSimpleInstructionBuilder("stc", 0xf9),
-    "mov"   : createBinaryInstructionBuilder("mov", 0x22),
-    "add"   : createBinaryInstructionBuilder("add", 0x00),
-    "sub"   : createBinaryInstructionBuilder("sub", 0x0a)
+    "pause" : defineSimpleInstruction("pause", 0x90),
+    "clc"   : defineSimpleInstruction("clc", 0xf8),
+    "stc"   : defineSimpleInstruction("stc", 0xf9),
+    "mov"   : defineBinaryInstruction("mov", 0x22),
+    "add"   : defineBinaryInstruction("add", 0x00),
+    "sub"   : defineBinaryInstruction("sub", 0x0a),
+    "and"   : defineBinaryInstruction("and", 0x08),
+    "or"    : defineBinaryInstruction("or", 0x02),
+    "xor"   : defineBinaryInstruction("xor", 0x0c),
+    "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
+    "idiv"  : defineBinaryInstruction("idiv", 0x3d)
     # TODO: the literal entirety of x86.
 }
 
@@ -98,7 +112,7 @@ class Assembler(object):
         else:
             raise ValueError('invalid assembly node')
 
-    def write(self, *bytes):
+    def write(self, bytes):
         """ Write several bytes to our bytecode list. """
         self.code += bytes
         self.index += len(bytes)

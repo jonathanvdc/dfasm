@@ -180,7 +180,7 @@ class MemoryNode(object):
         if len(indices) == 0 and len(baseRegisters) == 1: # Simple
             return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
         elif len(baseRegisters) == 2: # Simple SIB
-            return Instructions.SIBMemoryOperand(baseRegisters[0], baseRegisters[0], 0, disp, size8)
+            return Instructions.SIBMemoryOperand(baseRegisters[0], baseRegisters[1], 0, disp, size8)
         elif len(baseRegisters) == 1 and len(indices) == 1: # Typical SIB
             return Instructions.SIBMemoryOperand(baseRegisters[0], indices[0][0], indices[0][1], disp, size8)
         elif len(baseRegisters) > 2: # Whaaaat?
@@ -243,6 +243,36 @@ class InstructionNode(object):
     def __repr__(self):
         return "InstructionNode(%r, %r)" % (self.mnemonic, self.argumentList)
 
+class CastNode(object):
+    """ Describes an explicit cast syntax node. """
+    def __init__(self, type, ptr, expr):
+        self.type = type
+        self.ptr = ptr
+        self.expr = expr
+
+    dataTypes = ["byte", "word", "dword"]
+
+    @property
+    def size(self):
+        if self.type.contents == "byte":
+            return size8
+        elif self.type.contents == "word":
+            return size16
+        elif self.type.contents == "dword":
+            return size32
+        else:
+            raise Exception("Invalid data type '" + str(self.type) + " " + str(self.ptr) + "' in cast expression '" + str(self) + "'")
+            
+    def toOperand(self, asm):
+        """ Converts the cast node to an operand. """
+        return self.expr.toOperand(asm).cast(self.size)
+
+    def __str__(self):
+        return str(self.type) + " " + str(self.ptr) + " " + str(self.expr)
+
+    def __repr__(self):
+        return "CastNode(%r, %r, %r)" % (self.type, self.ptr, self.expr)
+
 class ParenthesesNode(object):
     """ Represents a parenthesized syntax node. """
     def __init__(self, lparen, expr, rparen):
@@ -278,12 +308,8 @@ def parseArgument(tokens):
         mov  ax, [bx+si]
              ^~  ^~~~~~~
     """
-    peek = tokens.peekNoTrivia()
-    if peek.type == "lbracket":
-        return parseMemory(tokens)
-    else:
-        left = parsePrimary(tokens)
-        return parseBinary(tokens, left, 10000)
+    left = parsePrimary(tokens)
+    return parseBinary(tokens, left, 10000)
 
 def parseArgumentList(tokens):
     """ Parse an instruction's argument list:
@@ -357,6 +383,16 @@ def parseAddress(tokens):
     """
     return parseArgument(tokens)
 
+def parseCast(tokens):
+    """ Parses an explicit cast syntax node.
+   
+        inc dword ptr [eax]
+            ^~~~~~~~~~~~~~~
+    """
+    typeToken = tokens.nextNoTrivia()
+    ptrToken = tokens.nextNoTrivia()
+    return CastNode(typeToken, ptrToken, parsePrimary(tokens))
+
 def parseLiteral(tokens):
     """ Parse a literal value in an instruction:
 
@@ -386,8 +422,13 @@ def parsePrimary(tokens):
         mov  ax, (1 + 3) << 2
              ^~  ^~~~~~~    ^
     """
-    if tokens.peekNoTrivia().type == "lparen":
+    peek = tokens.peekNoTrivia()
+    if peek.type == "lparen":
         return parseParentheses(tokens)
+    elif peek.type == "lbracket":
+        return parseMemory(tokens)
+    elif peek.type == "identifier" and peek.contents in CastNode.dataTypes:
+        return parseCast(tokens)
     else:
         return parseLiteral(tokens)
 

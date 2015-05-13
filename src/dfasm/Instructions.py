@@ -66,7 +66,7 @@ class RegisterOperand(object):
 
     @property
     def operandSize(self):
-        """ Gets the operand value's size, in bytes. """
+        """ Gets the operand value's size. """
         return self.register.size
 
     @property
@@ -155,15 +155,15 @@ class MemoryOperand(object):
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
-        return MemoryOperand(self.value, self.addressRegister, self.displacement, size)
+        return MemoryOperand(self.addressRegister, self.displacement, size)
 
     @property
     def addressingMode(self):
         """ Gets the register operand's addressing mode. """
-        if self.displacement.size == 1 or (self.addressRegister.index == 5 and self.displacement.size == 0):
+        if self.displacement.operandSize == size8 or (self.addressRegister.index == 5 and self.displacement.operandSize == size0):
             return "memoryByteOffset" # [register + disp8]
             # Note: [ebp] does not exist (its slot is taken by [disp32]. [ebp + disp8] does.
-        elif self.displacement.size == 0:
+        elif self.displacement.operandSize == size0:
             return "memory" # [register]
         else:
             return "memoryWordOffset" # [register + disp32]
@@ -171,17 +171,17 @@ class MemoryOperand(object):
     @property
     def operandIndex(self):
         """ Gets the register operand's 3-bit operand index. """
-        return self.addressRegister.operandIndex
+        return self.addressRegister.index
 
     def writeDataTo(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
-        if self.addressRegister.index == 5 and self.displacement.size == 0:
-            asm.write(0x00)
+        if self.addressRegister.index == 5 and self.displacement.operandSize == size0:
+            asm.write([0x00])
         else:
             self.displacement.writeDataTo(asm)
 
     def __str__(self):
-        if self.displacement.size == 0:
+        if self.displacement.operandSize == size0:
             return "[" + str(self.addressRegister) + "]"
         else:
             return "[" + str(self.addressRegister) + " + " + str(self.displacement) + "]"
@@ -203,14 +203,14 @@ class SIBMemoryOperand(object):
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
-        return MemoryOperand(self.value, self.baseRegister, self.indexRegister, self.indexShift, self.displacement, size)
+        return SIBMemoryOperand(self.baseRegister, self.indexRegister, self.indexShift, self.displacement, size)
 
     @property
     def addressingMode(self):
         """ Gets the register operand's addressing mode. """
-        if self.offsetRegister.size == 0: 
+        if self.displacement.operandSize == size0: 
             return "memory" # no displacement
-        elif self.displacement.size == 1: 
+        elif self.displacement.operandSize == size8: 
             return "memoryByteOffset" # byte displacement
         else: 
             return "memoryWordOffset" # int displacement
@@ -222,9 +222,9 @@ class SIBMemoryOperand(object):
 
     def writeDataTo(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
-        sibVal = (self.baseRegister.Index | self.indexRegister.Index << 3 | self.indexShift << 6) & 0xFF;
-        asm.write(sibVal);
-        self.displacement.writeDataTo(asm);
+        sibVal = (self.baseRegister.index | self.indexRegister.index << 3 | self.indexShift << 6) & 0xFF
+        asm.write([sibVal])
+        self.displacement.writeDataTo(asm)
 
     def __str__(self):
         return "[" + str(self.baseRegister) + " + " + str(self.indexRegister) + " << " + str(self.indexShift) + " + " + str(self.displacement) + "]"
