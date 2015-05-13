@@ -177,6 +177,8 @@ class MemoryNode(object):
         disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(addrOp))
         baseRegisters = self.getBaseRegisters(addrOp)
         indices = self.getIndexOperands(addrOp)
+        baseRegisters += map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
+        indices = filter(lambda x: x[1] != 0, indices)
         if len(indices) == 0 and len(baseRegisters) == 1: # Simple
             return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
         elif len(baseRegisters) == 2: # Simple SIB
