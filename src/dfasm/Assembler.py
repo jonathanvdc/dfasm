@@ -12,6 +12,9 @@ def writeBinaryInstruction(name, opCode, asm, args):
     reverseArgs = args[1].addressingMode != "register"
     regArg, memArg = (args[0], args[1]) if reverseArgs else (args[1], args[0])
 
+    if regArg.addressingMode != "register":
+        raise Exception("'" + name + "' must take at least one register operand.")
+
     if memArg.operandSize != regArg.operandSize:
         memArg = memArg.cast(regArg.operandSize) # Cast if necessary
 
@@ -27,9 +30,41 @@ def writeBinaryInstruction(name, opCode, asm, args):
     asm.write([opcodeByte, operandsByte])
     memArg.writeDataTo(asm)
 
+def writeBinaryImmediateInstruction(name, opCode, asm, args):
+    if len(args) != 2:
+        raise SyntaxError("'" + name + "' takes precisely two arguments.")
+
+    memArg, immArg = args[0], args[1]
+
+    wordReg = memArg.operandSize > size8
+
+    if immArg.operandSize == size0:
+        immArg = immArg.cast(size8)
+    elif immArg.operandSize != size8:
+        if not wordReg:
+            raise Exception("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(memArg) + "'")
+        immArg = immArg.cast(memArg.operandSize)
+        
+    shortImm = immArg.operandSize != memArg.operandSize
+
+    mode = encodeAddressingMode(memArg.addressingMode)
+    memIndex = memArg.operandIndex
+
+    opcodeByte = 0x80 | (int(shortImm) & 0x01) << 1 | int(wordReg) & 0x01
+    operandsByte = mode << 6 | opCode << 3 | memIndex
+    asm.write([opcodeByte, operandsByte])
+    memArg.writeDataTo(asm)
+    immArg.writeDataTo(asm)
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
+
+def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args):
+    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperand):
+        immediateInstructionBuilder(asm, args)
+    else:
+        registerInstructionBuilder(asm, args)
 
 def definePrefixedInstruction(prefix, instructionBuilder):
     return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
@@ -39,6 +74,14 @@ def defineSimpleInstruction(name, opCode):
 
 def defineBinaryInstruction(name, opCode):
     return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args)
+
+def defineBinaryImmediateInstruction(name, opCode):
+    return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
+
+def defineAmbiguousBinaryInstruction(name, opCode, immOpCode):
+    binDef = defineBinaryInstruction(name, opCode)
+    immDef = defineBinaryImmediateInstruction(name, immOpCode)
+    return lambda asm, args: writeAmbiguousBinaryInstruction(binDef, immDef, asm, args)
 
 def defineExtendedBinaryInstruction(name, prefix, opCode):
     return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
@@ -58,7 +101,7 @@ instructionBuilders = {
     "clc"   : defineSimpleInstruction("clc", 0xf8),
     "stc"   : defineSimpleInstruction("stc", 0xf9),
     "mov"   : defineBinaryInstruction("mov", 0x22),
-    "add"   : defineBinaryInstruction("add", 0x00),
+    "add"   : defineAmbiguousBinaryInstruction("add", 0x00, 0x00),
     "sub"   : defineBinaryInstruction("sub", 0x0a),
     "and"   : defineBinaryInstruction("and", 0x08),
     "or"    : defineBinaryInstruction("or", 0x02),
