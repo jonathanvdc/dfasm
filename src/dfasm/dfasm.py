@@ -3,7 +3,7 @@ clr.AddReference("Automata.dll")
 import sys
 
 import Automata
-import Instruction
+import Instructions
 from Lexer import *
 from Parser import *
 

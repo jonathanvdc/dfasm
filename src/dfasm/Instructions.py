@@ -1,4 +1,4 @@
-import Assembler
+from Encoding import *
 
 class Register(object):
     """ Represents a processor register. """
@@ -17,6 +17,35 @@ class Register(object):
 
     def __repr__(self):
         return "Register(%r, %r, %r, %r)" % (self.name, self.index, self.size, self.isSegmentRegister)
+
+registers = {
+    "eax" : Register("eax", 0, 4, False),
+    "ecx" : Register("ecx", 1, 4, False),
+    "edx" : Register("edx", 2, 4, False),
+    "ebx" : Register("ebx", 3, 4, False),
+    "esp" : Register("esp", 4, 4, False), # Note: addressing memory based on esp is not allowed.
+    "ebp" : Register("ebp", 5, 4, False),
+    "esi" : Register("esi", 6, 4, False),
+    "edi" : Register("edi", 7, 4, False),
+
+    "al"  : Register("al", 0, 1, False),
+    "cl"  : Register("cl", 1, 1, False),
+    "dl"  : Register("dl", 2, 1, False),
+    "bl"  : Register("bl", 3, 1, False),
+    "ah"  : Register("al", 4, 1, False),
+    "ch"  : Register("cl", 5, 1, False),
+    "dh"  : Register("dl", 6, 1, False),
+    "bh"  : Register("bl", 7, 1, False),
+
+    "ax"  : Register("ax", 0, 2, False),
+    "cx"  : Register("cx", 1, 2, False),
+    "dx"  : Register("dx", 2, 2, False),
+    "bx"  : Register("bx", 3, 2, False),
+    "sp"  : Register("sp", 4, 2, False),
+    "bp"  : Register("bp", 5, 2, False),
+    "si"  : Register("si", 6, 2, False),
+    "di"  : Register("di", 7, 2, False),
+}
 
 class RegisterOperand(object):
     """ Defines a register operand. """
@@ -48,6 +77,26 @@ class RegisterOperand(object):
     def __repr__(self):
         return "RegisterOperand(%r)" % self.register
 
+class BinaryOperand(object):
+    """ Represents a binary pseudo-operand.
+        The x86 ISA does not support these operands.
+        They are to be used soley for the assembler's intermediate representation. """
+
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = op
+        self.right = right
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return BinaryOperand(self.left.cast(size), self.op, self.right.cast(size))
+
+    def __str__(self):
+        return str(self.left) + " `" + self.op + "` " + str(self.right)
+
+    def __repr__(self):
+        return "Represents(%r, %r, %r)" % (self.left, self.op, self.right)
+
 class EmptyDisplacementOperand(object):
     """ Represents an empty displacement operand. """
     def __init__(self):
@@ -57,6 +106,10 @@ class EmptyDisplacementOperand(object):
     def operandSize(self):
         """ Gets the operand value's size, in bytes. """
         return 0
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return ImmediateOperand(0, size)
 
     def writeDataTo(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
@@ -70,20 +123,40 @@ class EmptyDisplacementOperand(object):
 
 class ImmediateOperand(object):
     """ Represents an immediate operand. """
-    def __init__(self, value, encoding, operandSize):
+    def __init__(self, value, operandSize):
         self.value = value
-        self.encoding = encoding
-        self.operandSize = operandSize
 
     def writeDataTo(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
-        asm.write(self.encoding(self.value))
+        asm.write(self.operandSize.encoding(self.value))
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return ImmediateOperand(self.value, size)
+
+    @staticmethod
+    def createSigned(value):
+        if -128 <= value <= 127:
+            return ImmediateOperand(value, size8)
+        elif -2 ** 15 <= value <= 2 ** 15 - 1:
+            return ImmediateOperand(value, size16)
+        else:
+            return ImmediateOperand(value, size32)
+
+    @staticmethod
+    def createUnsigned(value):
+        if 0 <= value <= 255:
+            return ImmediateOperand(value, size8)
+        elif 0 <= value <= 2 ** 16 - 1:
+            return ImmediateOperand(value, size16)
+        else:
+            return ImmediateOperand(value, size32)
 
     def __str__(self):
         return str(self.value)
 
     def __repr__(self):
-        return "ImmediateOperand(%r, %r, %r)" % (self.value, self.encoding, self.operandSize)
+        return "ImmediateOperand(%r, %r)" % (self.value, self.operandSize)
 
 class MemoryOperand(object):
     """ Represents a simple memory operand. """
@@ -91,6 +164,10 @@ class MemoryOperand(object):
         self.addressRegister = addressRegister
         self.displacement = displacement
         self.operandSize = operandSize
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return MemoryOperand(self.value, self.addressRegister, self.displacement, size)
 
     @property
     def addressingMode(self):
@@ -135,6 +212,10 @@ class SIBMemoryOperand(object):
         self.indexShift = indexShift
         self.displacement = displacement
         self.operandSize = operandSize
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return MemoryOperand(self.value, self.baseRegister, self.indexRegister, self.indexShift, self.displacement, size)
 
     @property
     def addressingMode(self):

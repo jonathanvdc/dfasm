@@ -1,27 +1,5 @@
 from Parser import *
-
-def to8(x):
-    """ Convert a given integer to a single-byte list. """
-    return [x & 0xFF]
-
-def to16le(x):
-    """ Convert a given integer to its 16-bit little endian representation as
-    a list of two bytes. """
-    return [(x >>  0) & 0xFF,
-            (x >>  8) & 0xFF]
-
-def to32le(x):
-    """ Convert a given integer to its 32-bit little endian representation as
-    a list of four bytes. """
-    return [(x >>  0) & 0xFF,
-            (x >>  8) & 0xFF,
-            (x >> 16) & 0xFF,
-            (x >> 24) & 0xFF]
-
-def relative(enc, here):
-    """ Given an address encoding function and an offset, return a new
-    function that encodes addresses relative to the given offset."""
-    return lambda x: enc(x - here)
+from Encoding import *
 
 def createSimpleInstructionBuilder(opCode):
     return lambda asm, args: asm.write(opCode)
@@ -94,6 +72,6 @@ class Assembler(object):
         op = str(node.mnemonic)
 
         if op in instructionBuilders:
-            instructionBuilders[op](self, node.argumentList)
+            instructionBuilders[op](self, node.argumentList.toOperands(self))
         else:
             raise ValueError('unknown opcode')

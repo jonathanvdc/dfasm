@@ -49,9 +49,15 @@ asmRegexes = {
     "plus": "\\+",
     "minus": "-",
     "asterisk": "\\*",
+    "slash" : "/",
+    "percent": "%",
+    "or" : "|",
+    "and" : "&",
+    "greaterthangreaterthan" : ">>",
+    "lessthanlessthan" : "<<",
     "dot": ".",
     "colon": ":",
-    "semicolon": ";",
+    "semicolon": ";"
 }
 
 # Compile regexes to automata.
