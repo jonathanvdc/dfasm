@@ -78,7 +78,9 @@ def defineBinaryInstruction(name, opCode):
 def defineBinaryImmediateInstruction(name, opCode):
     return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
 
-def defineAmbiguousBinaryInstruction(name, opCode, immOpCode):
+def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
+    if opCode is None:
+        opCode = immOpCode << 1
     binDef = defineBinaryInstruction(name, opCode)
     immDef = defineBinaryImmediateInstruction(name, immOpCode)
     return lambda asm, args: writeAmbiguousBinaryInstruction(binDef, immDef, asm, args)
@@ -101,11 +103,11 @@ instructionBuilders = {
     "clc"   : defineSimpleInstruction("clc", 0xf8),
     "stc"   : defineSimpleInstruction("stc", 0xf9),
     "mov"   : defineBinaryInstruction("mov", 0x22),
-    "add"   : defineAmbiguousBinaryInstruction("add", 0x00, 0x00),
-    "sub"   : defineAmbiguousBinaryInstruction("sub", 0x0a, 0x05),
-    "and"   : defineBinaryInstruction("and", 0x08),
-    "or"    : defineBinaryInstruction("or", 0x02),
-    "xor"   : defineBinaryInstruction("xor", 0x0c),
+    "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
+    "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
+    "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
+    "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
+    "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d)
     # TODO: the literal entirety of x86.
