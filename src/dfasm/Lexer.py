@@ -37,27 +37,27 @@ def processText(text):
     return map(processChar, text)
 
 asmRegexes = {
-    "identifier": "(_+c)(_+c+n)*",
-    "integer": "n*",
-    "whitespace": "( +\r+\t)*",
-    "newline" : "\n*",
-    "lparen": "\\(",
-    "rparen": "\\)",
-    "lbracket": "[",
-    "rbracket": "]",
-    "comma": ",",
-    "plus": "\\+",
-    "minus": "-",
-    "asterisk": "\\*",
-    "slash" : "/",
-    "percent": "%",
-    "or" : "|",
-    "and" : "&",
-    "greaterthangreaterthan" : ">>",
-    "lessthanlessthan" : "<<",
-    "dot": ".",
-    "colon": ":",
-    "semicolon": ";"
+    "identifier"                :   "(_+c)(_+c+n)*",
+    "integer"                   :   "n*",
+    "whitespace"                :   "( +\r+\t)*",
+    "newline"                   :   "\n*",
+    "lparen"                    :   "\\(",
+    "rparen"                    :   "\\)",
+    "lbracket"                  :   "[",
+    "rbracket"                  :   "]",
+    "comma"                     :   ",",
+    "plus"                      :   "\\+",
+    "minus"                     :   "-",
+    "asterisk"                  :   "\\*",
+    "slash"                     :   "/",
+    "percent"                   :   "%",
+    "or"                        :   "|",
+    "and"                       :   "&",
+    "greaterthangreaterthan"    :   ">>",
+    "lessthanlessthan"          :   "<<",
+    "dot"                       :   ".",
+    "colon"                     :   ":",
+    "semicolon"                 :   ";"
 }
 
 # Compile regexes to automata.
