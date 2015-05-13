@@ -97,30 +97,6 @@ class BinaryOperand(object):
     def __repr__(self):
         return "Represents(%r, %r, %r)" % (self.left, self.op, self.right)
 
-class EmptyDisplacementOperand(object):
-    """ Represents an empty displacement operand. """
-    def __init__(self):
-        pass
-
-    @property
-    def operandSize(self):
-        """ Gets the operand value's size, in bytes. """
-        return 0
-
-    def cast(self, size):
-        """ "Casts" this operand to match the given size. """
-        return ImmediateOperand(0, size)
-
-    def writeDataTo(self, asm):
-        """ Writes operand data not in the opcode itself to the assembler. """
-        pass
-
-    def __str__(self):
-        return "0"
-
-    def __repr__(self):
-        return "EmptyDisplacementOperand()"
-
 class ImmediateOperand(object):
     """ Represents an immediate operand. """
     def __init__(self, value, operandSize):
@@ -137,7 +113,9 @@ class ImmediateOperand(object):
 
     @staticmethod
     def createSigned(value):
-        if -128 <= value <= 127:
+        if value == 0:
+            return ImmediateOperand(0, size0)
+        elif -128 <= value <= 127:
             return ImmediateOperand(value, size8)
         elif -2 ** 15 <= value <= 2 ** 15 - 1:
             return ImmediateOperand(value, size16)
@@ -146,7 +124,9 @@ class ImmediateOperand(object):
 
     @staticmethod
     def createUnsigned(value):
-        if 0 <= value <= 255:
+        if value == 0:
+            return ImmediateOperand(0, size0)
+        elif 0 < value <= 255:
             return ImmediateOperand(value, size8)
         elif 0 <= value <= 2 ** 16 - 1:
             return ImmediateOperand(value, size16)

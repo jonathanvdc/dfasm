@@ -1,6 +1,7 @@
 import Instructions
 import Assembler
 import Lexer
+import math
 from Encoding import *
 
 precedence = {
@@ -125,7 +126,7 @@ class BinaryNode(object):
         if isinstance(lhs, Instructions.ImmediateOperand) and isinstance(rhs, Instructions.ImmediateOperand):
             return Instructions.ImmediateOperand.createSigned(operations[self.op.type](lhs.value, rhs.value))
         else:
-            return Instructions.BinaryOperand(lhs, rhs) # Create a binary pseudo-operand (which MemoryNode can then examine)
+            return Instructions.BinaryOperand(lhs, self.op.type, rhs) # Create a binary pseudo-operand (which MemoryNode can then examine)
 
     def __str__(self):
         return str(self.left) + " " + str(self.op) + " " + str(self.right)
@@ -139,6 +140,55 @@ class MemoryNode(object):
         self.lbracket = lbracket
         self.address = address
         self.rbracket = rbracket
+
+    def getDisplacement(self, operand):
+        if isinstance(operand, Instructions.ImmediateOperand):
+            return operand.value
+        elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
+            return self.getDisplacement(operand.left) + self.getDisplacement(operand.right)
+        else:
+            return 0
+        
+    def getBaseRegisters(self, operand):
+        if isinstance(operand, Instructions.RegisterOperand):
+            return [operand.register]
+        elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
+            return self.getBaseRegisters(operand.left) + self.getBaseRegisters(operand.right)
+        else:
+            return []
+
+    def getIndexOperands(self, operand):
+        if isinstance(operand, Instructions.BinaryOperand):
+            if operand.op == "asterisk" or operand.op == "lessthanlessthan":
+                if isinstance(operand.left, Instructions.RegisterOperand) and isinstance(operand.right, Instructions.ImmediateOperand):
+                    return [(operand.left.register, operand.right.value if operand.op == "lessthanlessthan" else int(math.log(operand.right.value, 2)))]
+                elif isinstance(operand.right, Instructions.RegisterOperand) and isinstance(operand.left, Instructions.ImmediateOperand):
+                    return [(operand.right.register, operand.left.value if operand.op == "lessthanlessthan" else int(math.log(operand.left.value, 2)))]
+                else:
+                    raise SyntaxError("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+            elif operand.op == "plus":
+                return self.getIndexOperands(operand.left) + self.getIndexOperands(operand.right)
+            else:
+                raise SyntaxError("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+        return []
+
+    def toOperand(self, asm):
+        addrOp = self.address.toOperand(asm)
+        disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(addrOp))
+        baseRegisters = self.getBaseRegisters(addrOp)
+        indices = self.getIndexOperands(addrOp)
+        if len(indices) == 0 and len(baseRegisters) == 1: # Simple
+            return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
+        elif len(baseRegisters) == 2: # Simple SIB
+            return Instructions.SIBMemoryOperand(baseRegisters[0], baseRegisters[0], 0, disp, size8)
+        elif len(baseRegisters) == 1 and len(indices) == 1: # Typical SIB
+            return Instructions.SIBMemoryOperand(baseRegisters[0], indices[0][0], indices[0][1], disp, size8)
+        elif len(baseRegisters) > 2: # Whaaaat?
+            raise SyntaxError("More than two base registers are not supported. ('" + str(self) + "')") 
+        elif len(indices) > 2:
+            raise SyntaxError("More than two index registers are not supported. ('" + str(self) + "')") 
+        else:
+            raise SyntaxError("Bad memory operand ('" + str(self) + "')")
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)
