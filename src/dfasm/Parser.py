@@ -91,12 +91,7 @@ class IntegerNode(LiteralNode):
     def toOperand(self, asm):
         """ Converts the integer node to an operand. """
         val = int(self.token.contents)
-        if -128 <= val <= 127:
-            return Instructions.ImmediateOperand(val, to8, 1)
-        elif -2 ** 16 <= val <= 2 ** 16 - 1:
-            return Instructions.ImmediateOperand(val, to16le, 4)
-        else:
-            return Instructions.ImmediateOperand(val, to32le, 4)
+        return Instructions.ImmediateOperand.createSigned(val)
 
     def __repr__(self):
         return "IntegerNode(%r)" % self.token
@@ -128,7 +123,7 @@ class BinaryNode(object):
         lhs = self.left.toOperand(asm)
         rhs = self.right.toOperand(asm)
         if isinstance(lhs, Instructions.ImmediateOperand) and isinstance(rhs, Instructions.ImmediateOperand):
-            return Instructions.ImmediateOperand.createSigned(operations[self.op](lhs.value, rhs.value))
+            return Instructions.ImmediateOperand.createSigned(operations[self.op.type](lhs.value, rhs.value))
         else:
             return Instructions.BinaryOperand(lhs, rhs) # Create a binary pseudo-operand (which MemoryNode can then examine)
 
