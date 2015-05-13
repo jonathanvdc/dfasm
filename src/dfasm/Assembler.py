@@ -48,7 +48,9 @@ instructionBuilders = {
     "pause" : createSimpleInstructionBuilder("pause", 0x90),
     "clc"   : createSimpleInstructionBuilder("clc", 0xf8),
     "stc"   : createSimpleInstructionBuilder("stc", 0xf9),
-    "mov"   : createBinaryInstructionBuilder("mov", 0x22)
+    "mov"   : createBinaryInstructionBuilder("mov", 0x22),
+    "add"   : createBinaryInstructionBuilder("add", 0x00),
+    "sub"   : createBinaryInstructionBuilder("sub", 0x0a)
     # TODO: the literal entirety of x86.
 }
 
