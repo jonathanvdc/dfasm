@@ -23,6 +23,26 @@ def relative(enc, here):
     function that encodes addresses relative to the given offset."""
     return lambda x: enc(x - here)
 
+def createSimpleInstructionBuilder(opCode):
+    return lambda asm, args: asm.write(opCode)
+
+addressingModeEncodings = {
+    "register" : 3,
+    "memory" : 0,
+    "memoryByteOffset" : 1,
+    "memoryWordOffset" : 2
+}
+
+def encodeAddressingMode(mode):
+    return addressingModeEncodings[mode]
+
+instructionBuilders = {
+    "pause" : createSimpleInstructionBuilder(0x90),
+    "clc" : createSimpleInstructionBuilder(0xf8),
+    "stc" : createSimpleInstructionBuilder(0xf9),
+    # TODO: the literal entirety of x86.
+}
+
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
 
@@ -72,12 +92,8 @@ class Assembler(object):
     def processInstruction(self, node):
         """ Process the given InstructionNode. """
         op = str(node.mnemonic)
-        if op == 'pause':
-            self.write(0x90)
-        elif op == 'clc':
-            self.write(0xf8)
-        elif op == 'stc':
-            self.write(0xf9)
-        # TODO: the literal entirety of x86.
+
+        if op in instructionBuilders:
+            instructionBuilders[op](self, node.argumentList)
         else:
             raise ValueError('unknown opcode')
