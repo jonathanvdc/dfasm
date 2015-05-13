@@ -365,3 +365,10 @@ def parseInstruction(tokens):
     # Otherwise it's just an instruction.
     argList = parseArgumentList(tokens)
     return InstructionNode(first, argList)
+
+def parseAllInstructions(tokens):
+    """ Parses all instructions in the token stream. """
+    results = []
+    while not tokens.isTrivia():
+        results.append(parseInstruction(tokens))
+    return results

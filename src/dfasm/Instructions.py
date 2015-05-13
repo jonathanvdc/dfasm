@@ -125,6 +125,7 @@ class ImmediateOperand(object):
     """ Represents an immediate operand. """
     def __init__(self, value, operandSize):
         self.value = value
+        self.operandSize = operandSize
 
     def writeDataTo(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
