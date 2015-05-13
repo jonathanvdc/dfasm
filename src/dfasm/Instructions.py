@@ -45,6 +45,13 @@ registers = {
     "bp"  : Register("bp", 5, 2, False),
     "si"  : Register("si", 6, 2, False),
     "di"  : Register("di", 7, 2, False),
+
+    "cs"  : Register("cs", 0x2E, 2, True),
+    "ss"  : Register("ss", 0x36, 2, True),
+    "ds"  : Register("ds", 0x3E, 2, True),
+    "es"  : Register("es", 0x26, 2, True),
+    "fs"  : Register("fs", 0x64, 2, True),
+    "gs"  : Register("gs", 0x65, 2, True)
 }
 
 class RegisterOperand(object):

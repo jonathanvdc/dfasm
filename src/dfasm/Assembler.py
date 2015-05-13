@@ -1,8 +1,13 @@
 from Parser import *
 from Encoding import *
 
-def createSimpleInstructionBuilder(opCode):
-    return lambda asm, args: asm.write(opCode)
+def writeSimpleInstruction(name, opCode, asm, args):
+    if len(args) > 0:
+        raise SyntaxError("'" + name + "' does not take any arguments.")
+    asm.write(opCode)
+
+def createSimpleInstructionBuilder(name, opCode):
+    return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
 
 addressingModeEncodings = {
     "register" : 3,
@@ -15,9 +20,9 @@ def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
 instructionBuilders = {
-    "pause" : createSimpleInstructionBuilder(0x90),
-    "clc" : createSimpleInstructionBuilder(0xf8),
-    "stc" : createSimpleInstructionBuilder(0xf9),
+    "pause" : createSimpleInstructionBuilder("pause", 0x90),
+    "clc"   : createSimpleInstructionBuilder("clc", 0xf8),
+    "stc"   : createSimpleInstructionBuilder("stc", 0xf9),
     # TODO: the literal entirety of x86.
 }
 

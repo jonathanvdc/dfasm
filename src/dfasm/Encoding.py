@@ -42,7 +42,7 @@ class OperandSize(object):
     def __eq__(self, other):
         return self.size == other.size
 
-size0 = OperandSize(0, lambda x: [])
+size0 = OperandSize(0, lambda x: []) # Represents zero, which can usually be omitted. If not, it will probably be upcast somehow. Meh.
 size8 = OperandSize(1, to8)
 size16 = OperandSize(2, to16le)
 size32 = OperandSize(4, to32le)
