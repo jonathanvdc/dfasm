@@ -6,8 +6,33 @@ def writeSimpleInstruction(name, opCode, asm, args):
         raise SyntaxError("'" + name + "' does not take any arguments.")
     asm.write(opCode)
 
+def writeBinaryInstruction(name, opCode, asm, args):
+    if len(args) != 2:
+        raise SyntaxError("'" + name + "' takes precisely two arguments.")
+    reverseArgs = args[0].addressingMode != "register"
+    regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
+
+    if memArg.operandSize != regArg.operandSize:
+        memArg = memArg.cast(regArg.operandSize) # Cast if necessary
+
+    isWord = regArg.operandSize > size8
+
+    mode = encodeAddressingMode(memArg.addressingMode)
+    regIndex = regArg.operandIndex
+    memIndex = memArg.operandIndex
+
+    opcodeByte = opCode << 2 | int(reverseArgs) & 0x01 << 1 | int(isWord) & 0x01
+    operandsByte = mode << 6 | memIndex << 3 | regIndex
+
+    asm.write(opcodeByte)
+    asm.write(operandsByte)
+    memArg.writeDataTo(asm)
+
 def createSimpleInstructionBuilder(name, opCode):
     return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
+
+def createBinaryInstructionBuilder(name, opCode):
+    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args)
 
 addressingModeEncodings = {
     "register" : 3,
@@ -23,6 +48,7 @@ instructionBuilders = {
     "pause" : createSimpleInstructionBuilder("pause", 0x90),
     "clc"   : createSimpleInstructionBuilder("clc", 0xf8),
     "stc"   : createSimpleInstructionBuilder("stc", 0xf9),
+    "mov"   : createBinaryInstructionBuilder("mov", 0x22)
     # TODO: the literal entirety of x86.
 }
 

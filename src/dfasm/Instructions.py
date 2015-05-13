@@ -10,7 +10,7 @@ class Register(object):
 
     @property
     def isWord(self):
-        return self.size > 1
+        return self.size > size8
 
     def __str__(self):
         return self.name
@@ -19,39 +19,39 @@ class Register(object):
         return "Register(%r, %r, %r, %r)" % (self.name, self.index, self.size, self.isSegmentRegister)
 
 registers = {
-    "eax" : Register("eax", 0, 4, False),
-    "ecx" : Register("ecx", 1, 4, False),
-    "edx" : Register("edx", 2, 4, False),
-    "ebx" : Register("ebx", 3, 4, False),
-    "esp" : Register("esp", 4, 4, False), # Note: addressing memory based on esp is not allowed.
-    "ebp" : Register("ebp", 5, 4, False),
-    "esi" : Register("esi", 6, 4, False),
-    "edi" : Register("edi", 7, 4, False),
+    "eax" : Register("eax", 0, size32, False),
+    "ecx" : Register("ecx", 1, size32, False),
+    "edx" : Register("edx", 2, size32, False),
+    "ebx" : Register("ebx", 3, size32, False),
+    "esp" : Register("esp", 4, size32, False), # Note: addressing memory based on esp is not allowed.
+    "ebp" : Register("ebp", 5, size32, False),
+    "esi" : Register("esi", 6, size32, False),
+    "edi" : Register("edi", 7, size32, False),
 
-    "al"  : Register("al", 0, 1, False),
-    "cl"  : Register("cl", 1, 1, False),
-    "dl"  : Register("dl", 2, 1, False),
-    "bl"  : Register("bl", 3, 1, False),
-    "ah"  : Register("al", 4, 1, False),
-    "ch"  : Register("cl", 5, 1, False),
-    "dh"  : Register("dl", 6, 1, False),
-    "bh"  : Register("bl", 7, 1, False),
+    "al"  : Register("al", 0, size8, False),
+    "cl"  : Register("cl", 1, size8, False),
+    "dl"  : Register("dl", 2, size8, False),
+    "bl"  : Register("bl", 3, size8, False),
+    "ah"  : Register("al", 4, size8, False),
+    "ch"  : Register("cl", 5, size8, False),
+    "dh"  : Register("dl", 6, size8, False),
+    "bh"  : Register("bl", 7, size8, False),
 
-    "ax"  : Register("ax", 0, 2, False),
-    "cx"  : Register("cx", 1, 2, False),
-    "dx"  : Register("dx", 2, 2, False),
-    "bx"  : Register("bx", 3, 2, False),
-    "sp"  : Register("sp", 4, 2, False),
-    "bp"  : Register("bp", 5, 2, False),
-    "si"  : Register("si", 6, 2, False),
-    "di"  : Register("di", 7, 2, False),
+    "ax"  : Register("ax", 0, size16, False),
+    "cx"  : Register("cx", 1, size16, False),
+    "dx"  : Register("dx", 2, size16, False),
+    "bx"  : Register("bx", 3, size16, False),
+    "sp"  : Register("sp", 4, size16, False),
+    "bp"  : Register("bp", 5, size16, False),
+    "si"  : Register("si", 6, size16, False),
+    "di"  : Register("di", 7, size16, False),
 
-    "cs"  : Register("cs", 0x2E, 2, True),
-    "ss"  : Register("ss", 0x36, 2, True),
-    "ds"  : Register("ds", 0x3E, 2, True),
-    "es"  : Register("es", 0x26, 2, True),
-    "fs"  : Register("fs", 0x64, 2, True),
-    "gs"  : Register("gs", 0x65, 2, True)
+    "cs"  : Register("cs", 0x2E, size16, True),
+    "ss"  : Register("ss", 0x36, size16, True),
+    "ds"  : Register("ds", 0x3E, size16, True),
+    "es"  : Register("es", 0x26, size16, True),
+    "fs"  : Register("fs", 0x64, size16, True),
+    "gs"  : Register("gs", 0x65, size16, True)
 }
 
 class RegisterOperand(object):
@@ -67,7 +67,7 @@ class RegisterOperand(object):
     @property
     def operandSize(self):
         """ Gets the operand value's size, in bytes. """
-        return register.size
+        return self.register.size
 
     @property
     def operandIndex(self):

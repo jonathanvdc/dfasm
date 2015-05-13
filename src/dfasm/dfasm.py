@@ -26,3 +26,4 @@ while not sys.stdin.closed:
         print("Operands:")
         print(repr(item.argumentList.toOperands(asm)))
     
+    print("{ " + ", ".join(map(hex, asm.code)) + " }")
