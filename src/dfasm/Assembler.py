@@ -131,9 +131,10 @@ def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
 instructionBuilders = {
-    "pause" : defineSimpleInstruction("pause", 0x90),
-    "clc"   : defineSimpleInstruction("clc", 0xf8),
-    "stc"   : defineSimpleInstruction("stc", 0xf9),
+    "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
+    "nop" : defineSimpleInstruction("nop", [0x90]),
+    "clc"   : defineSimpleInstruction("clc", [0xf8]),
+    "stc"   : defineSimpleInstruction("stc", [0xf9]),
     "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
