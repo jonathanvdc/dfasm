@@ -135,6 +135,8 @@ instructionBuilders = {
     "nop"   : defineSimpleInstruction("nop", [0x90]),
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
+    "pusha" : defineSimpleInstruction("pusha", [0x60]),
+    "popa"  : defineSimpleInstruction("popa", [0x61]),
     "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
