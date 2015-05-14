@@ -132,7 +132,7 @@ def encodeAddressingMode(mode):
 
 instructionBuilders = {
     "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
-    "nop" : defineSimpleInstruction("nop", [0x90]),
+    "nop"   : defineSimpleInstruction("nop", [0x90]),
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
     "int"   : writeInterruptInstruction,
