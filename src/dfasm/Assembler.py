@@ -107,6 +107,9 @@ def defineBinaryImmediateInstruction(name, opCode):
 def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
     return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args)
 
+def defineReversedArgumentsInstruction(instructionBuilder):
+    return lambda asm, args: instructionBuilder(asm, list(reversed(args)))
+
 def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     if opCode is None:
         opCode = immOpCode << 1
@@ -133,6 +136,7 @@ instructionBuilders = {
     "stc"   : defineSimpleInstruction("stc", 0xf9),
     "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
+    "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
