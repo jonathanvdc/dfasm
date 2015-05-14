@@ -6,6 +6,10 @@ def writeSimpleInstruction(name, opCode, asm, args):
         raise SyntaxError("'" + name + "' does not take any arguments.")
     asm.write(opCode)
 
+def createModRM(mode, regIndex, memIndex):
+    """ Created a MOD R/M byte. """
+    return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
+
 def writeBinaryInstruction(name, opCode, asm, args):
     if len(args) != 2:
         raise SyntaxError("'" + name + "' takes precisely two arguments.")
@@ -19,13 +23,11 @@ def writeBinaryInstruction(name, opCode, asm, args):
         memArg = memArg.cast(regArg.operandSize) # Cast if necessary
 
     isWord = regArg.operandSize > size8
-
-    mode = encodeAddressingMode(memArg.addressingMode)
     regIndex = regArg.operandIndex
     memIndex = memArg.operandIndex
 
     opcodeByte = opCode << 2 | (int(reverseArgs) & 0x01) << 1 | int(isWord) & 0x01
-    operandsByte = mode << 6 | regIndex << 3 | memIndex
+    operandsByte = createModRM(memArg.addressingMode, regIndex, memIndex)
 
     asm.write([opcodeByte, operandsByte])
     memArg.writeDataTo(asm)
@@ -47,11 +49,8 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
         
     shortImm = immArg.operandSize != memArg.operandSize
 
-    mode = encodeAddressingMode(memArg.addressingMode)
-    memIndex = memArg.operandIndex
-
     opcodeByte = 0x80 | (int(shortImm) & 0x01) << 1 | int(wordReg) & 0x01
-    operandsByte = mode << 6 | opCode << 3 | memIndex
+    operandsByte = createModRM(memArg.addressingMode, opCode, memArg.operandIndex)
     asm.write([opcodeByte, operandsByte])
     memArg.writeDataTo(asm)
     immArg.writeDataTo(asm)
@@ -67,20 +66,36 @@ def writeMovImmediateInstruction(asm, args):
     else:
         asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
         mode = encodeAddressingMode(memArg.addressingMode)
-        asm.write([mode << 6 | memArg.operandIndex])
+        asm.write([createModRM(mode, 0x00, memArg.operandIndex)])
         memArg.writeDataTo(asm)
 
     immArg.cast(memArg.operandSize).writeDataTo(asm)
 
 def writeInterruptInstruction(asm, args):
     if len(args) != 1:
-        raise SyntaxError("'int' takes precisely two arguments.")
+        raise SyntaxError("'int' takes precisely one argument.")
     immArg = args[0].toUnsigned()
     if immArg.operandSize > size8:
         raise SyntaxError("'int' must take an 8-bit operand.")
 
     asm.write([0xcd])
     immArg.cast(size8).writeDataTo(asm)
+
+def writePushPopRegisterInstruction(regOpCode, asm, arg):
+    asm.write([regOpCode << 3 | arg.operandIndex])
+
+def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
+    if len(args) != 1:
+        raise SyntaxError("'" + name + "' takes precisely one argument.")
+
+    arg = args[0]
+
+    if arg.addressingMode == "register":
+        writePushPopRegisterInstruction(regOpCode, asm, arg)
+    else:
+        asm.write([memOpCode, createModRM(arg.addressingMode, memReg, arg.operandIndex)])
+        arg.writeDataTo(asm)
+
 
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
@@ -110,6 +125,9 @@ def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionB
 def defineReversedArgumentsInstruction(instructionBuilder):
     return lambda asm, args: instructionBuilder(asm, list(reversed(args)))
 
+def definePushPopInstruction(name, regOpCode, memOpCode, memReg):
+    return lambda asm, args: writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args)
+
 def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     if opCode is None:
         opCode = immOpCode << 1
@@ -137,6 +155,8 @@ instructionBuilders = {
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
     "pusha" : defineSimpleInstruction("pusha", [0x60]),
     "popa"  : defineSimpleInstruction("popa", [0x61]),
+    "push"  : definePushPopInstruction("push", 0xa, 0xff, 0x6),
+    "pop"   : definePushPopInstruction("pop", 0xb, 0x8f, 0x0),
     "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
