@@ -54,7 +54,14 @@ registers = {
     "gs"  : Register("gs", 0x65, size16, True)
 }
 
-class RegisterOperand(object):
+class Operand(object):
+    """ Defines a base class for instruction operands. """
+
+    def writeDataTo(self, asm):
+        """ Writes operand data not in the opcode itself to the assembler. """
+        asm.write(self.getData(asm))
+
+class RegisterOperand(Operand):
     """ Defines a register operand. """
     def __init__(self, register):
         self.register = register
@@ -74,9 +81,17 @@ class RegisterOperand(object):
         """ Gets the register operand's 3-bit operand index. """
         return self.register.index
 
-    def writeDataTo(self, asm):
-        """ Writes operand data not in the opcode itself to the assembler. """
-        pass
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this operand. """
+        return 0
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return True
+
+    def getData(self, asm):
+        return []
 
     def __str__(self):
         return str(self.register)
@@ -84,7 +99,7 @@ class RegisterOperand(object):
     def __repr__(self):
         return "RegisterOperand(%r)" % self.register
 
-class BinaryOperand(object):
+class BinaryOperand(Operand):
     """ Represents a binary pseudo-operand.
         The x86 ISA does not support these operands.
         They are to be used soley for the assembler's intermediate representation. """
@@ -98,21 +113,37 @@ class BinaryOperand(object):
         """ "Casts" this operand to match the given size. """
         return BinaryOperand(self.left.cast(size), self.op, self.right.cast(size))
 
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return False
+
     def __str__(self):
         return str(self.left) + " `" + self.op + "` " + str(self.right)
 
     def __repr__(self):
-        return "Represents(%r, %r, %r)" % (self.left, self.op, self.right)
+        return "BinaryOperand(%r, %r, %r)" % (self.left, self.op, self.right)
 
-class ImmediateOperand(object):
+class ImmediateOperandBase(Operand):
+    """ A base class for immediate and label operands. """
+    pass
+
+class ImmediateOperand(ImmediateOperandBase):
     """ Represents an immediate operand. """
     def __init__(self, value, operandSize):
         self.value = value
         self.operandSize = operandSize
 
-    def writeDataTo(self, asm):
-        """ Writes operand data not in the opcode itself to the assembler. """
-        asm.write(self.operandSize.encoding(self.value))
+    def getData(self, asm):
+        return self.operandSize.encoding(self.value)
+
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this operand. """
+        return self.operandSize.size
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return True
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
@@ -152,7 +183,38 @@ class ImmediateOperand(object):
     def __repr__(self):
         return "ImmediateOperand(%r, %r)" % (self.value, self.operandSize)
 
-class MemoryOperand(object):
+class LabelOperand(ImmediateOperandBase):
+    """ Describes a label operand. """
+    def __init__(self, labelName, operandSize):
+        self.labelName = labelName
+        self.operandSize = operandSize
+
+    def createOperand(self, asm):
+        return ImmediateOperand(asm.labels[self.labelName], self.operandSize)
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return self.labelName in asm.labels
+
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this operand. """
+        return self.operandSize.size
+
+    def getData(self, asm):
+        return self.createOperand(asm).getData(asm)
+
+    def __str__(self):
+        return self.labelName
+
+    def __repr__(self):
+        return "LabelOperand(%r, %r)" % (self.labelName, self.operandSize)
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return LabelOperand(self.labelName, size)
+
+class MemoryOperand(Operand):
     """ Represents a simple memory operand. """
     def __init__(self, addressRegister, displacement, operandSize):
         self.addressRegister = addressRegister
@@ -162,6 +224,18 @@ class MemoryOperand(object):
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
         return MemoryOperand(self.addressRegister, self.displacement, size)
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return self.displacement.canWrite(asm)
+
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this instruction. """
+        if self.addressRegister.index == 5 and self.displacement.operandSize == size0:
+            return 1
+        else:
+            return self.displacement.dataSize
 
     @property
     def addressingMode(self):
@@ -179,12 +253,12 @@ class MemoryOperand(object):
         """ Gets the register operand's 3-bit operand index. """
         return self.addressRegister.index
 
-    def writeDataTo(self, asm):
+    def getData(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
         if self.addressRegister.index == 5 and self.displacement.operandSize == size0:
-            asm.write([0x00])
+            return [0x00]
         else:
-            self.displacement.writeDataTo(asm)
+            return self.displacement.getData(asm)
 
     def __str__(self):
         if self.displacement.operandSize == size0:
@@ -195,7 +269,7 @@ class MemoryOperand(object):
     def __repr__(self):
         return "DirectMemoryOperand(%r, %r, %r)" % (self.addressRegister, self.displacement, self.operandSize)
 
-class SIBMemoryOperand(object):
+class SIBMemoryOperand(Operand):
     """ Represents an SIB memory operand. """
     # Encoding from:
     # http://www.c-jump.com/CIS77/CPU/x86/lecture.html#X77_0100_sib_byte_layout
@@ -206,6 +280,10 @@ class SIBMemoryOperand(object):
         self.indexShift = indexShift
         self.displacement = displacement
         self.operandSize = operandSize
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return self.displacement.canWrite(asm)
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
@@ -226,11 +304,15 @@ class SIBMemoryOperand(object):
         """ Gets the register operand's 3-bit operand index. """
         return 4 # SIB uses operand index 4
 
-    def writeDataTo(self, asm):
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this instruction. """
+        return 1 + self.displacement.dataSize
+
+    def getData(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
         sibVal = (self.baseRegister.index | self.indexRegister.index << 3 | self.indexShift << 6) & 0xFF
-        asm.write([sibVal])
-        self.displacement.writeDataTo(asm)
+        return [sibVal] + self.displacement.getData(asm)
 
     def __str__(self):
         return "[" + str(self.baseRegister) + " + " + str(self.indexRegister) + " << " + str(self.indexShift) + " + " + str(self.displacement) + "]"

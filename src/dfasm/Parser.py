@@ -106,7 +106,7 @@ class IdentifierNode(LiteralNode):
         if name in Instructions.registers: # Maybe we'll get lucky and encounter a register.
             return Instructions.RegisterOperand(Instructions.registers[name])
         else:
-            return Instructions.ImmediateOperand.createUnsigned(asm.labels[name])
+            return Instructions.LabelOperand(name, size32)
 
 
     def __repr__(self):

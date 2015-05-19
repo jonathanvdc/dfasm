@@ -51,6 +51,7 @@ while not sys.stdin.closed:
         printHex(asm.code[previousIndex:])
         previousIndex = asm.index
     
+asm.patchLabels()
 if jit:
     func = libjit.JitFunction.Create(System.Array[System.Byte](asm.code))
     print(func.Invoke[int]())

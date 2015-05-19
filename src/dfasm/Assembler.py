@@ -30,7 +30,7 @@ def writeBinaryInstruction(name, opCode, asm, args):
     operandsByte = createModRM(memArg.addressingMode, regIndex, memIndex)
 
     asm.write([opcodeByte, operandsByte])
-    memArg.writeDataTo(asm)
+    asm.writeArgument(memArg)
 
 def writeBinaryImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2:
@@ -52,8 +52,8 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
     opcodeByte = 0x80 | (int(shortImm) & 0x01) << 1 | int(wordReg) & 0x01
     operandsByte = createModRM(memArg.addressingMode, opCode, memArg.operandIndex)
     asm.write([opcodeByte, operandsByte])
-    memArg.writeDataTo(asm)
-    immArg.writeDataTo(asm)
+    asm.writeArgument(memArg)
+    asm.writeArgument(immArg)
 
 def writeMovImmediateInstruction(asm, args):
     if len(args) != 2:
@@ -67,9 +67,9 @@ def writeMovImmediateInstruction(asm, args):
         asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
         mode = encodeAddressingMode(memArg.addressingMode)
         asm.write([createModRM(mode, 0x00, memArg.operandIndex)])
-        memArg.writeDataTo(asm)
+        asm.writeArgument(memArg)
 
-    immArg.cast(memArg.operandSize).writeDataTo(asm)
+    asm.writeArgument(immArg.cast(memArg.operandSize))
 
 def writeInterruptInstruction(asm, args):
     if len(args) != 1:
@@ -79,7 +79,7 @@ def writeInterruptInstruction(asm, args):
         raise SyntaxError("'int' must take an 8-bit operand.")
 
     asm.write([0xcd])
-    immArg.cast(size8).writeDataTo(asm)
+    asm.writeArgument(immArg.cast(size8))
 
 def writePushPopRegisterInstruction(regOpCode, asm, arg):
     asm.write([regOpCode << 3 | arg.operandIndex])
@@ -94,7 +94,7 @@ def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
         writePushPopRegisterInstruction(regOpCode, asm, arg)
     else:
         asm.write([memOpCode, createModRM(arg.addressingMode, memReg, arg.operandIndex)])
-        arg.writeDataTo(asm)
+        asm.writeArgument(arg)
 
 
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
@@ -102,7 +102,7 @@ def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     instructionBuilder(asm, args)
 
 def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args):
-    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperand):
+    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperandBase):
         immediateInstructionBuilder(asm, args)
     else:
         registerInstructionBuilder(asm, args)
@@ -185,19 +185,14 @@ class Assembler(object):
         self.code = []
 
         self.index = 0
-        
-        # A list [(address, 'label name', func)] of replacements to make at
-        # the specified addresses: this is done after processing all nodes.
-        # `func` is a function that takes the address of a label and returns
-        # a list of bytes; for example, if we need an 8-bit relative jump we
-        # might append `lambda lbl: to8(lbl - here)`.
-        self.replacements = []
 
     def patchLabels(self):
         """ Patches all labels. """
-        for addr, label, func in replacements:
-            new = func(labels[label])
-            self.code[addr:addr + len(new)] = new
+        i = 0
+        while i < len(self.code):
+            if isinstance(self.code[i], Instructions.Operand) and self.code[i].canWrite(self):
+                self.code[i:i+1] = self.code[i].getData(self)
+            i += 1
 
     def assemble(self, nodes):
         """ Assemble the given list of instructions and labels into bytecode
@@ -217,6 +212,14 @@ class Assembler(object):
             self.processInstruction(node)
         else:
             raise ValueError('invalid assembly node')
+
+    def writeArgument(self, arg):
+        """ Writes an argument, possibly resolving it later on. """
+        if arg.canWrite(self):
+            arg.writeDataTo(self)
+        else:
+            self.code += [arg]
+            self.index += arg.dataSize
 
     def write(self, bytes):
         """ Write several bytes to our bytecode list. """
