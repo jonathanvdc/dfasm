@@ -137,6 +137,24 @@ def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
 
 def defineExtendedBinaryInstruction(name, prefix, opCode):
     return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
+	
+def writeCallInstruction(asm, args): # Sieberts code
+	if len(args) != 1:
+		raise SyntaxError("'call' takes precisely one argument.")
+	asm.write([0xe9])
+	args[0].cast(size32).writeDataTo(asm)
+	
+def writeJumpInstruction(asm, args): # tevens
+	if len(args) != 1:
+		raise SyntaxError("'jmp' takes precisely one argument.")
+		
+	if args[0].operandSize == size8:
+		asm.write([0xeb])
+		args[0].cast(size8).writeDataTo(asm)
+		return
+	else:
+		asm.write([0xe9])
+		args[0].cast(size32).writeDataTo(asm)
 
 addressingModeEncodings = {
     "register" : 3,
@@ -170,7 +188,9 @@ instructionBuilders = {
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
-    "idiv"  : defineBinaryInstruction("idiv", 0x3d)
+    "idiv"  : defineBinaryInstruction("idiv", 0x3d),
+	"call"	: writeCallInstruction,
+	"jmp"	: writeJumpInstruction
     # TODO: the literal entirety of x86.
 }
 
