@@ -155,6 +155,10 @@ class ImmediateOperand(ImmediateOperandBase):
     def toUnsigned(self):
         return ImmediateOperand.createUnsigned(self.value)
 
+    def makeRelative(self, offset):
+        """ Turns this immediate operand into an relative operand. """
+        return ImmediateOperand.createSigned(self.value - offset)
+
     @staticmethod
     def createSigned(value):
         if value == 0:
@@ -183,18 +187,19 @@ class ImmediateOperand(ImmediateOperandBase):
     def __repr__(self):
         return "ImmediateOperand(%r, %r)" % (self.value, self.operandSize)
 
-class LabelOperand(ImmediateOperandBase):
-    """ Describes a label operand. """
+class LabelOperandBase(ImmediateOperandBase):
+    """ A base class for label operands. """
     def __init__(self, labelName, operandSize):
         self.labelName = labelName
-        self.operandSize = operandSize
-
-    def createOperand(self, asm):
-        return ImmediateOperand(asm.labels[self.labelName], self.operandSize)
+        self.operandSize = operandSize  
 
     def canWrite(self, asm):
         """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.labelName in asm.labels
+
+    def makeRelative(self, offset):
+        """ Turns this label operand into a relative operand. """
+        return RelativeLabelOperand(offset, self.labelName, self.operandSize)
 
     @property
     def dataSize(self):
@@ -207,12 +212,34 @@ class LabelOperand(ImmediateOperandBase):
     def __str__(self):
         return self.labelName
 
+class RelativeLabelOperand(LabelOperandBase):
+    """ Describes a relative label operand. """
+    def __init__(self, offset, labelName, operandSize):
+        self.offset = offset
+        self.labelName = labelName
+        self.operandSize = operandSize
+
+    def createOperand(self, asm):
+        return ImmediateOperand(asm.labels[self.labelName] - self.offset, self.operandSize)
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return RelativeLabelOperand(self.offset, self.labelName, size)
+
     def __repr__(self):
-        return "LabelOperand(%r, %r)" % (self.labelName, self.operandSize)
+        return "RelativeLabelOperand(%r, %r, %r)" % (self.offset, self.labelName, self.operandSize)
+
+class LabelOperand(LabelOperandBase):
+    """ Describes a label operand. """
+    def createOperand(self, asm):
+        return ImmediateOperand(asm.labels[self.labelName], self.operandSize)
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
         return LabelOperand(self.labelName, size)
+
+    def __repr__(self):
+        return "LabelOperand(%r, %r)" % (self.labelName, self.operandSize)
 
 class MemoryOperand(Operand):
     """ Represents a simple memory operand. """

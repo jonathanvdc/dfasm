@@ -14,15 +14,15 @@ from Parser import *
 print("Ready.")
 
 debug = False
-jit = False
-repl = True
+jit = True
+repl = False
 
 def printDebug(value):
     if debug:
         print(value)
 
 def printHex(values):
-    print("{ " + ", ".join(map(hex, values)) + " }")
+    print("{ " + ", ".join(map(lambda x: hex(x) if isinstance(x, int) else str(x), values)) + " }")
 
 asm = Assembler.Assembler()
 
@@ -49,7 +49,7 @@ while not sys.stdin.closed:
 
     if repl:
         printHex(asm.code[previousIndex:])
-        previousIndex = asm.index
+        previousIndex = len(asm.code)
     
 asm.patchLabels()
 if jit:

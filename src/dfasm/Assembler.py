@@ -137,24 +137,23 @@ def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
 
 def defineExtendedBinaryInstruction(name, prefix, opCode):
     return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
-	
+
 def writeCallInstruction(asm, args): # Sieberts code
-	if len(args) != 1:
-		raise SyntaxError("'call' takes precisely one argument.")
-	asm.write([0xe9])
-	args[0].cast(size32).writeDataTo(asm)
-	
+    if len(args) != 1:
+        raise SyntaxError("'call' takes precisely one argument.")
+    asm.write([0xe9])
+    asm.writeArgument(args[0].cast(size32).makeRelative(asm.index + 4))
+    
 def writeJumpInstruction(asm, args): # tevens
-	if len(args) != 1:
-		raise SyntaxError("'jmp' takes precisely one argument.")
-		
-	if args[0].operandSize == size8:
-		asm.write([0xeb])
-		args[0].cast(size8).writeDataTo(asm)
-		return
-	else:
-		asm.write([0xe9])
-		args[0].cast(size32).writeDataTo(asm)
+    if len(args) != 1:
+        raise SyntaxError("'jmp' takes precisely one argument.")
+        
+    if args[0].operandSize == size8:
+        asm.write([0xeb])
+        asm.writeArgument(args[0].cast(size8).makeRelative(asm.index + 1))
+    else:
+        asm.write([0xe9])
+        asm.writeArgument(args[0].cast(size32).makeRelative(asm.index + 4))
 
 addressingModeEncodings = {
     "register" : 3,
