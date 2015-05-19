@@ -3,7 +3,7 @@ from Encoding import *
 
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
-        raise SyntaxError("'" + name + "' does not take any arguments.")
+        raise Exception("'" + name + "' does not take any arguments.")
     asm.write(opCode)
 
 def createModRM(mode, regIndex, memIndex):
@@ -12,9 +12,9 @@ def createModRM(mode, regIndex, memIndex):
 
 def writeBinaryInstruction(name, opCode, asm, args):
     if len(args) != 2:
-        raise SyntaxError("'" + name + "' takes precisely two arguments.")
-    reverseArgs = args[1].addressingMode != "register"
-    regArg, memArg = (args[0], args[1]) if reverseArgs else (args[1], args[0])
+        raise Exception("'" + name + "' takes precisely two arguments.")
+    reverseArgs = args[0].addressingMode != "register"
+    regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
 
     if regArg.addressingMode != "register":
         raise Exception("'" + name + "' must take at least one register operand.")
@@ -26,7 +26,7 @@ def writeBinaryInstruction(name, opCode, asm, args):
     regIndex = regArg.operandIndex
     memIndex = memArg.operandIndex
 
-    opcodeByte = opCode << 2 | (int(reverseArgs) & 0x01) << 1 | int(isWord) & 0x01
+    opcodeByte = opCode << 2 | (int(not reverseArgs) & 0x01) << 1 | int(isWord) & 0x01
     operandsByte = createModRM(memArg.addressingMode, regIndex, memIndex)
 
     asm.write([opcodeByte, operandsByte])
@@ -34,7 +34,7 @@ def writeBinaryInstruction(name, opCode, asm, args):
 
 def writeBinaryImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2:
-        raise SyntaxError("'" + name + "' takes precisely two arguments.")
+        raise Exception("'" + name + "' takes precisely two arguments.")
 
     memArg, immArg = args[0], args[1]
 
@@ -57,7 +57,7 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
 
 def writeMovImmediateInstruction(asm, args):
     if len(args) != 2:
-        raise SyntaxError("'mov' takes precisely two arguments.")
+        raise Exception("'mov' takes precisely two arguments.")
 
     memArg, immArg = args[0], args[1]
 
@@ -65,18 +65,17 @@ def writeMovImmediateInstruction(asm, args):
         asm.write([0xb << 4 | (int(memArg.operandSize != size8) & 0x01) << 3 | memArg.operandIndex])
     else:
         asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
-        mode = encodeAddressingMode(memArg.addressingMode)
-        asm.write([createModRM(mode, 0x00, memArg.operandIndex)])
+        asm.write([createModRM(memArg.addressingMode, 0x00, memArg.operandIndex)])
         asm.writeArgument(memArg)
 
     asm.writeArgument(immArg.cast(memArg.operandSize))
 
 def writeInterruptInstruction(asm, args):
     if len(args) != 1:
-        raise SyntaxError("'int' takes precisely one argument.")
+        raise Exception("'int' takes precisely one argument.")
     immArg = args[0].toUnsigned()
     if immArg.operandSize > size8:
-        raise SyntaxError("'int' must take an 8-bit operand.")
+        raise Exception("'int' must take an 8-bit operand.")
 
     asm.write([0xcd])
     asm.writeArgument(immArg.cast(size8))
@@ -86,7 +85,7 @@ def writePushPopRegisterInstruction(regOpCode, asm, arg):
 
 def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
     if len(args) != 1:
-        raise SyntaxError("'" + name + "' takes precisely one argument.")
+        raise Exception("'" + name + "' takes precisely one argument.")
 
     arg = args[0]
 
@@ -98,9 +97,11 @@ def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
 
 def writeEnterInstruction(asm, args):
     if len(args) != 2:
-        raise SyntaxError("'" + name + "' takes precisely one argument.")
+        raise Exception("'enter' takes precisely two arguments.")
     if not isinstance(args[0], Instructions.ImmediateOperandBase) or not isinstance(args[1], Instructions.ImmediateOperandBase):
-        raise SyntaxError("'" + name + "' must take two immediate arguments.")
+        raise Exception("'enter' must take two immediate arguments.")
+    if args[0].operandSize > size16 or args[1].operandSize > size8:
+        raise Exception("'enter' must take a 16-bit operand and an 8-bit operand.")
 
     asm.write([0xc8])
     asm.writeArgument(args[0].cast(size16))
@@ -149,13 +150,13 @@ def defineExtendedBinaryInstruction(name, prefix, opCode):
 
 def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1:
-        raise SyntaxError("'call' takes precisely one argument.")
+        raise Exception("'call' takes precisely one argument.")
     asm.write([0xe8])
     asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
     
 def writeJumpInstruction(asm, args): # tevens
     if len(args) != 1:
-        raise SyntaxError("'jmp' takes precisely one argument.")
+        raise Exception("'jmp' takes precisely one argument.")
         
     if args[0].operandSize == size8:
         asm.write([0xeb])

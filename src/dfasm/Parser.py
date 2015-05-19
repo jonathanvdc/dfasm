@@ -146,38 +146,35 @@ class MemoryNode(object):
             return operand.value
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
             return self.getDisplacement(operand.left) + self.getDisplacement(operand.right)
+        elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "minus":
+            return self.getDisplacement(operand.left) - self.getDisplacement(operand.right)
         else:
             return 0
-        
-    def getBaseRegisters(self, operand):
-        if isinstance(operand, Instructions.RegisterOperand):
-            return [operand.register]
-        elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
-            return self.getBaseRegisters(operand.left) + self.getBaseRegisters(operand.right)
-        else:
-            return []
 
     def getIndexOperands(self, operand):
-        if isinstance(operand, Instructions.BinaryOperand):
+        if isinstance(operand, Instructions.RegisterOperand):
+            return [(operand.register, 0)]
+        elif isinstance(operand, Instructions.BinaryOperand):
             if operand.op == "asterisk" or operand.op == "lessthanlessthan":
                 if isinstance(operand.left, Instructions.RegisterOperand) and isinstance(operand.right, Instructions.ImmediateOperand):
                     return [(operand.left.register, operand.right.value if operand.op == "lessthanlessthan" else int(math.log(operand.right.value, 2)))]
                 elif isinstance(operand.right, Instructions.RegisterOperand) and isinstance(operand.left, Instructions.ImmediateOperand):
                     return [(operand.right.register, operand.left.value if operand.op == "lessthanlessthan" else int(math.log(operand.left.value, 2)))]
                 else:
-                    raise SyntaxError("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+                    raise Exception("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
             elif operand.op == "plus":
                 return self.getIndexOperands(operand.left) + self.getIndexOperands(operand.right)
+            elif operand.op == "minus" and len(self.getIndexOperands(operand.right)) == 0:
+                return self.getIndexOperands(operand.left)
             else:
-                raise SyntaxError("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+                raise Exception("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
         return []
 
     def toOperand(self, asm):
         addrOp = self.address.toOperand(asm)
         disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(addrOp))
-        baseRegisters = self.getBaseRegisters(addrOp)
         indices = self.getIndexOperands(addrOp)
-        baseRegisters += map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
+        baseRegisters = map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
         indices = filter(lambda x: x[1] != 0, indices)
         if len(indices) == 0 and len(baseRegisters) == 1: # Simple
             return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
@@ -186,11 +183,11 @@ class MemoryNode(object):
         elif len(baseRegisters) == 1 and len(indices) == 1: # Typical SIB
             return Instructions.SIBMemoryOperand(baseRegisters[0], indices[0][0], indices[0][1], disp, size8)
         elif len(baseRegisters) > 2: # Whaaaat?
-            raise SyntaxError("More than two base registers are not supported. ('" + str(self) + "')") 
+            raise Exception("More than two base registers are not supported. ('" + str(self) + "')") 
         elif len(indices) > 2:
-            raise SyntaxError("More than two index registers are not supported. ('" + str(self) + "')") 
+            raise Exception("More than two index registers are not supported. ('" + str(self) + "')") 
         else:
-            raise SyntaxError("Bad memory operand ('" + str(self) + "')")
+            raise Exception("Bad memory operand ('" + str(self) + "')")
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)

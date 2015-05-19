@@ -14,8 +14,8 @@ from Parser import *
 print("Ready.")
 
 debug = False
-jit = False
-repl = True
+jit = True
+repl = False
 
 def printDebug(value):
     if debug:
