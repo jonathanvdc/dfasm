@@ -15,6 +15,7 @@
     <OutputPath>.</OutputPath>
     <Name>dfasm</Name>
     <RootNamespace>dfasm</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

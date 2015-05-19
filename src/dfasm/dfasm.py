@@ -1,17 +1,21 @@
 import clr
 clr.AddReference("Automata.dll")
+clr.AddReference("libjit.dll")
 import sys
 
 import Automata
 import Instructions
 import Assembler
+import libjit
+import System
 from Lexer import *
 from Parser import *
 
 print("Ready.")
 
 debug = False
-repl = True
+jit = True
+repl = False
 
 def printDebug(value):
     if debug:
@@ -25,7 +29,11 @@ asm = Assembler.Assembler()
 previousIndex = 0
 
 while not sys.stdin.closed:
-    lexed = lexAsm(sys.stdin.readline().strip())
+    try:
+        line = sys.stdin.readline().strip()
+    except KeyboardInterrupt:
+        break
+    lexed = lexAsm(line)
     printDebug(lexed)
     instrs = parseAllInstructions(TokenStream(lexed))
     printDebug(instrs)
@@ -43,5 +51,9 @@ while not sys.stdin.closed:
         printHex(asm.code[previousIndex:])
         previousIndex = asm.index
     
-if not repl:
+if jit:
+    func = libjit.JitFunction.Create(System.Array[System.Byte](asm.code))
+    print(func.Invoke[int]())
+    func.Dispose()
+elif repl:
     printHex(asm.code)
