@@ -55,6 +55,7 @@ while not sys.stdin.closed:
         previousIndex = len(asm.code)
     
 asm.patchLabels()
+print("")
 if jit:
     func = libjit.JitFunction.Create(System.Array[System.Byte](asm.code))
     print(func.Invoke[int]())
