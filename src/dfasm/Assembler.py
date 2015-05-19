@@ -186,6 +186,7 @@ instructionBuilders = {
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
+    "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
 	"call"	: writeCallInstruction,
