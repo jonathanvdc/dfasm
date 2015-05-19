@@ -174,6 +174,7 @@ instructionBuilders = {
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
     "ret"   : defineSimpleInstruction("ret", [0xc3]),
+    "leave" : defineSimpleInstruction("leave", [0xc9]),
     "pusha" : defineSimpleInstruction("pusha", [0x60]),
     "popa"  : defineSimpleInstruction("popa", [0x61]),
     "push"  : definePushPopInstruction("push", 0xa, 0xff, 0x6),
