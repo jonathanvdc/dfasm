@@ -22,7 +22,8 @@ def printDebug(value):
         print(value)
 
 def printHex(values):
-    print("{ " + ", ".join(map(lambda x: hex(x) if isinstance(x, int) else str(x), values)) + " }")
+    text = "{ " + ", ".join(map(lambda x: hex(x) if isinstance(x, int) else str(x), values)) + " }"
+    print(text)
 
 asm = Assembler.Assembler()
 
@@ -30,7 +31,9 @@ previousIndex = 0
 
 while not sys.stdin.closed:
     try:
-        line = sys.stdin.readline().strip()
+        line = ""
+        while line == "" and not sys.stdin.closed:
+            line = sys.stdin.readline().strip()
     except KeyboardInterrupt:
         break
     lexed = lexAsm(line)

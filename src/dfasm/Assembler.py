@@ -141,7 +141,7 @@ def defineExtendedBinaryInstruction(name, prefix, opCode):
 def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1:
         raise SyntaxError("'call' takes precisely one argument.")
-    asm.write([0xe9])
+    asm.write([0xe8])
     asm.writeArgument(args[0].cast(size32).makeRelative(asm.index + 4))
     
 def writeJumpInstruction(asm, args): # tevens
