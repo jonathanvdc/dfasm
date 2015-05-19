@@ -149,6 +149,9 @@ def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
 instructionBuilders = {
+    # This should come in handy when encoding instructions:
+    #     http://pdos.csail.mit.edu/6.828/2006/readings/i386/c17.htm
+
     "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
     "nop"   : defineSimpleInstruction("nop", [0x90]),
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
