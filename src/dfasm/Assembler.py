@@ -96,6 +96,15 @@ def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
         asm.write([memOpCode, createModRM(arg.addressingMode, memReg, arg.operandIndex)])
         asm.writeArgument(arg)
 
+def writeEnterInstruction(asm, args):
+    if len(args) != 2:
+        raise SyntaxError("'" + name + "' takes precisely one argument.")
+    if not isinstance(args[0], Instructions.ImmediateOperandBase) or not isinstance(args[1], Instructions.ImmediateOperandBase):
+        raise SyntaxError("'" + name + "' must take two immediate arguments.")
+
+    asm.write([0xc8])
+    asm.writeArgument(args[0].cast(size16))
+    asm.writeArgument(args[1].cast(size8))
 
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
@@ -142,7 +151,7 @@ def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1:
         raise SyntaxError("'call' takes precisely one argument.")
     asm.write([0xe8])
-    asm.writeArgument(args[0].cast(size32).makeRelative(asm.index + 4))
+    asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
     
 def writeJumpInstruction(asm, args): # tevens
     if len(args) != 1:
@@ -150,10 +159,10 @@ def writeJumpInstruction(asm, args): # tevens
         
     if args[0].operandSize == size8:
         asm.write([0xeb])
-        asm.writeArgument(args[0].cast(size8).makeRelative(asm.index + 1))
+        asm.writeArgument(args[0].makeRelative(asm.index + 1).cast(size8))
     else:
         asm.write([0xe9])
-        asm.writeArgument(args[0].cast(size32).makeRelative(asm.index + 4))
+        asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
 
 addressingModeEncodings = {
     "register" : 3,
@@ -177,6 +186,7 @@ instructionBuilders = {
     "leave" : defineSimpleInstruction("leave", [0xc9]),
     "pusha" : defineSimpleInstruction("pusha", [0x60]),
     "popa"  : defineSimpleInstruction("popa", [0x61]),
+    "enter" : writeEnterInstruction,
     "push"  : definePushPopInstruction("push", 0xa, 0xff, 0x6),
     "pop"   : definePushPopInstruction("pop", 0xb, 0x8f, 0x0),
     "int"   : writeInterruptInstruction,
