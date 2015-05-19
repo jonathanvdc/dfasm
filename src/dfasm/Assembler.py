@@ -184,6 +184,8 @@ instructionBuilders = {
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
+    "sbb"   : defineAmbiguousBinaryInstruction("sbb", 0x03),
+    "adc"   : defineAmbiguousBinaryInstruction("adc", 0x02),
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
