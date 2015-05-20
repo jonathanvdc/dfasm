@@ -112,7 +112,7 @@ namespace libcoff
                 }
                 else
                 {
-                    sectionNumber = file.GetSectionIndex(e.Section);
+                    sectionNumber = file.GetSectionIndex(e.Section) + 1;
                     if (sectionNumber == -1) throw new ApplicationException();
                 }
 

@@ -34,7 +34,7 @@ namespace libcoff
             Section section,
             SymbolType type,
             StorageClass storageClass,
-            IReadOnlyList<AuxiliarySymbol> auxularySymbols)
+            IReadOnlyList<AuxiliarySymbol> auxiliarySymbols)
         {
             this.Name = name;
             this.Mode = mode;
@@ -42,7 +42,7 @@ namespace libcoff
             this.Section = section;
             this.Type = type;
             this.StorageClass = storageClass;
-            this.AuxiliarySymbols = auxularySymbols;
+            this.AuxiliarySymbols = auxiliarySymbols;
         }
 
         public const int Size = 18;
