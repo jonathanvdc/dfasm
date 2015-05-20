@@ -37,14 +37,14 @@ namespace libcoff
             return -1;
         }
 
-        public static ObjectFile FromCode(byte[] Code)
+        public static ObjectFile FromCode(byte[] Code, bool Is64Bit)
         {
             var dataSection = new Section(".data", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite);
             var codeSection = new Section(".text", (uint)Code.Length, 0, Code, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemExecute | SectionHeaderFlags.MemRead | SectionHeaderFlags.CntCode | SectionHeaderFlags.Align16Bytes);
             var function = new Symbol("func", SymbolMode.Normal, 0, codeSection, new SymbolType(), StorageClass.External, new AuxiliarySymbol[] { });
             var sections = new Section[] { dataSection, codeSection };
             var symbols = new Symbol[] { function };
-            return new ObjectFile(MachineType.Amd64, sections, symbols, 0);
+            return new ObjectFile(Is64Bit ? MachineType.Amd64 : MachineType.I386, sections, symbols, 0);
         }
     }
 }

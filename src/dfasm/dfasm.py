@@ -66,5 +66,5 @@ if jit:
 elif repl:
     printHex(asm.code)
 elif output:
-    coffFile = libcoff.ObjectFile.FromCode(System.Array[System.Byte](asm.code))
+    coffFile = libcoff.ObjectFile.FromCode(System.Array[System.Byte](asm.code), True)
     libcoff.CoffWriter.WriteToFile("a.o", coffFile)
