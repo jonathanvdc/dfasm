@@ -10,11 +10,13 @@ def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
     return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
 
-def writeBinaryInstruction(name, opCode, asm, args, needCast):
+def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
         raise Exception("'" + name + "' takes precisely two arguments.")
     reverseArgs = args[0].addressingMode != "register"
     regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
+    if reverseFlag != None:
+        reverseArgs = reverseFlag
 
     if regArg.addressingMode != "register":
         raise Exception("'" + name + "' must take at least one register operand.")
@@ -154,8 +156,8 @@ def definePrefixedInstruction(prefix, instructionBuilder):
 def defineSimpleInstruction(name, opCode):
     return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
 
-def defineBinaryInstruction(name, opCode, needCast = True):
-    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast)
+def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
+    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
 
 def defineBinaryImmediateInstruction(name, opCode):
     return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
@@ -176,8 +178,8 @@ def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     immDef = defineBinaryImmediateInstruction(name, immOpCode)
     return defineAmbiguousInstruction(binDef, immDef)
 
-def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True):
-    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast))
+def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, reverseFlag = None):
+    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast, reverseFlag))
 
 def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1:
@@ -246,7 +248,8 @@ instructionBuilders = {
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
-    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21), writeTestImmediateInstruction),
+    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True), writeTestImmediateInstruction),
+    "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
 	"call"	: writeCallInstruction,
