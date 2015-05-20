@@ -140,6 +140,26 @@ def writeTestImmediateInstruction(asm, args):
         asm.write([createModRM(memArg.addressingMode, 0, memArg.operandIndex)])
         asm.writeArgument(immArg.cast(memArg.operandSize))
 
+def makeRelativeOperand(shortOffset, longOffset, arg):
+    rel = arg.makeRelative(shortOffset)
+    if rel.operandSize <= size8:
+        return rel.cast(size8)
+    else:
+        return arg.makeRelative(longOffset).cast(size32)
+
+def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'" + name + "' takes precisely one immediate operand.")
+
+    relOp = makeRelativeOperand(asm.index + 2, asm.index + 6, args[0])
+
+    if relOp.operandSize == size8:
+        asm.write([0x70 | conditionOpCode])
+        asm.writeArgument(relOp)
+    else:
+        asm.write([0x0f, 0x80 | conditionOpCode])
+        asm.writeArgument(relOp)
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
@@ -181,22 +201,27 @@ def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
 def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, reverseFlag = None):
     return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast, reverseFlag))
 
+def defineConditionalJumpInstruction(name, conditionOpCode):
+    return lambda asm, args: writeConditionalJumpInstruction(asm, args, name, conditionOpCode)
+
 def writeCallInstruction(asm, args): # Sieberts code
-    if len(args) != 1:
-        raise Exception("'call' takes precisely one argument.")
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'call' takes precisely one immediate operand.")
     asm.write([0xe8])
     asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
     
 def writeJumpInstruction(asm, args): # tevens
-    if len(args) != 1:
-        raise Exception("'jmp' takes precisely one argument.")
-        
-    if args[0].operandSize == size8:
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'jmp' takes precisely one immediate operand.")
+
+    relOp = makeRelativeOperand(asm.index + 2, asm.index + 5, args[0])
+
+    if relOp.operandSize == size8:
         asm.write([0xeb])
-        asm.writeArgument(args[0].makeRelative(asm.index + 1).cast(size8))
+        asm.writeArgument(relOp)
     else:
         asm.write([0xe9])
-        asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
+        asm.writeArgument(relOp)
 
 addressingModeEncodings = {
     "register" : 3,
@@ -253,7 +278,39 @@ instructionBuilders = {
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
 	"call"	: writeCallInstruction,
-	"jmp"	: writeJumpInstruction
+	"jmp"	: writeJumpInstruction,
+    # Lots of these conditional jump mnemonics are synonyms.
+    "ja"    : defineConditionalJumpInstruction("ja", 0x7),    # Jump if above (CF == 0 && ZF == 0)
+    "jae"   : defineConditionalJumpInstruction("jae", 0x3),   # Jump if above or equal (CF == 0)
+    "jb"    : defineConditionalJumpInstruction("jb", 0x2),    # Jump if below (CF == 1)
+    "jbe"   : defineConditionalJumpInstruction("jbe", 0x6),   # Jump if below or equal (CF == 1 || ZF == 1)
+    "jc"    : defineConditionalJumpInstruction("jc", 0x2),    # Jump if carry (CF == 1)
+    "je"    : defineConditionalJumpInstruction("je", 0x4),    # Jump if equal (ZF == 1)
+    "jz"    : defineConditionalJumpInstruction("jz", 0x4),    # Jump if zero (ZF == 1)
+    "jg"    : defineConditionalJumpInstruction("jg", 0xf),    # Jump if greater (ZF == 0 && SF == OF)
+    "jge"   : defineConditionalJumpInstruction("jge", 0xd),   # Jump if greater or equal (SF == OF)
+    "jl"    : defineConditionalJumpInstruction("jl", 0xc),    # Jump if less (SF != OF)
+    "jle"   : defineConditionalJumpInstruction("jle", 0xe),   # Jump if less or equal (ZF == 1 && SF != OF)
+    "jna"   : defineConditionalJumpInstruction("jna", 0x6),   # Jump if not above (CF == 1 || ZF == 1)
+    "jnae"  : defineConditionalJumpInstruction("jnae", 0x2),  # Jump if not above or equal (CF == 1)
+    "jnb"   : defineConditionalJumpInstruction("jnb", 0x3),   # Jump if not below (CF == 0)
+    "jnbe"  : defineConditionalJumpInstruction("jnbe", 0x7),  # Jump if not below or equal (CF == 0 && ZF == 0)
+    "jnc"   : defineConditionalJumpInstruction("jnc", 0x3),   # Jump if not carry (CF == 0)
+    "jne"   : defineConditionalJumpInstruction("jne", 0x5),   # Jump if not equal (ZF == 0)
+    "jng"   : defineConditionalJumpInstruction("jng", 0xe),   # Jump if not greater (ZF == 1 || SF != OF)
+    "jnge"  : defineConditionalJumpInstruction("jnge", 0xc),  # Jump if not greater or equal (SF != OF)
+    "jnl"   : defineConditionalJumpInstruction("jnl", 0xd),   # Jump if not less (SF == OF)
+    "jnle"  : defineConditionalJumpInstruction("jnle", 0xf),  # Jump if not less or equal (ZF == 0 && SF == OF)
+    "jno"   : defineConditionalJumpInstruction("jno", 0x1),   # Jump if not overflow (OF == 1)
+    "jnp"   : defineConditionalJumpInstruction("jnp", 0xb),   # Jump if not parity (PF == 0)
+    "jns"   : defineConditionalJumpInstruction("jns", 0x9),   # Jump if not sign (SF == 0)
+    "jnz"   : defineConditionalJumpInstruction("jnz", 0x5),   # Jump if not zero (ZF == 0)
+    "jo"    : defineConditionalJumpInstruction("jo", 0x0),    # Jump if overflow (OF == 1)
+    "jp"    : defineConditionalJumpInstruction("jp", 0xa),    # Jump if parity (PF == 1)
+    "jpe"   : defineConditionalJumpInstruction("jpe", 0xa),   # Jump if parity even (PF == 1)
+    "jpo"   : defineConditionalJumpInstruction("jpo", 0xb),   # Jump if parity odd (PF == 0)
+    "js"    : defineConditionalJumpInstruction("js", 0x8),    # Jump if sign (SF == 1)
+    "jz"    : defineConditionalJumpInstruction("jz", 0x4),    # Jump if zero (ZF == 1)
     # TODO: the literal entirety of x86.
 }
 
