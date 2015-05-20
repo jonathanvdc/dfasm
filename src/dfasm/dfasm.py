@@ -1,6 +1,7 @@
 import clr
 clr.AddReference("Automata.dll")
 clr.AddReference("libjit.dll")
+clr.AddReference("libcoff.dll")
 import sys
 
 import Automata
@@ -8,14 +9,16 @@ import Instructions
 import Assembler
 import libjit
 import System
+import libcoff
 from Lexer import *
 from Parser import *
 
 print("Ready.")
 
 debug = False
-jit = True
+jit = False
 repl = False
+output = True
 
 def printDebug(value):
     if debug:
@@ -62,3 +65,6 @@ if jit:
     func.Dispose()
 elif repl:
     printHex(asm.code)
+elif output:
+    coffFile = libcoff.ObjectFile.FromCode(System.Array[System.Byte](asm.code))
+    libcoff.CoffWriter.WriteToFile("a.o", coffFile)

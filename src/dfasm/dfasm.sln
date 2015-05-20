@@ -7,6 +7,8 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "dfasm", "dfasm.pyproj", "{D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libjit", "..\libjit\libjit.csproj", "{1617C880-C3E5-467B-9A18-232EF4FC1CEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libcoff", "..\libcoff\libcoff.csproj", "{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +21,10 @@ Global
 		{1617C880-C3E5-467B-9A18-232EF4FC1CEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1617C880-C3E5-467B-9A18-232EF4FC1CEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1617C880-C3E5-467B-9A18-232EF4FC1CEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
