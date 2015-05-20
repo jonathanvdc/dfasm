@@ -10,7 +10,7 @@ def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
     return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
 
-def writeBinaryInstruction(name, opCode, asm, args):
+def writeBinaryInstruction(name, opCode, asm, args, needCast):
     if len(args) != 2:
         raise Exception("'" + name + "' takes precisely two arguments.")
     reverseArgs = args[0].addressingMode != "register"
@@ -19,10 +19,10 @@ def writeBinaryInstruction(name, opCode, asm, args):
     if regArg.addressingMode != "register":
         raise Exception("'" + name + "' must take at least one register operand.")
 
-    if memArg.operandSize != regArg.operandSize:
+    if needCast and memArg.operandSize != regArg.operandSize:
         memArg = memArg.cast(regArg.operandSize) # Cast if necessary
 
-    isWord = regArg.operandSize > size8
+    isWord = memArg.operandSize > size8
     regIndex = regArg.operandIndex
     memIndex = memArg.operandIndex
 
@@ -133,8 +133,8 @@ def definePrefixedInstruction(prefix, instructionBuilder):
 def defineSimpleInstruction(name, opCode):
     return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
 
-def defineBinaryInstruction(name, opCode):
-    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args)
+def defineBinaryInstruction(name, opCode, needCast = True):
+    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast)
 
 def defineBinaryImmediateInstruction(name, opCode):
     return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
@@ -155,8 +155,8 @@ def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     immDef = defineBinaryImmediateInstruction(name, immOpCode)
     return defineAmbiguousInstruction(binDef, immDef)
 
-def defineExtendedBinaryInstruction(name, prefix, opCode):
-    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode))
+def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True):
+    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast))
 
 def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1:
@@ -202,6 +202,8 @@ instructionBuilders = {
     "pop"   : definePushPopInstruction("pop", 0xb, 0x8f, 0x0),
     "int"   : writeInterruptInstruction,
     "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
+    "movsx" : defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False),
+    "movzx" : defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
