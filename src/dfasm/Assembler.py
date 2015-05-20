@@ -117,6 +117,27 @@ def writeRetInstruction(asm, args):
         asm.write([0xc2])
         asm.writeArgument(args[0].cast(size16))
 
+def writeTestImmediateInstruction(asm, args):
+    if len(args) != 2:
+        raise Exception("'test' takes precisely two operands.")
+    
+    (memArg, immArg) = (args[0], args[1]) if isinstance(args[1], Instructions.ImmediateOperandBase) else (args[1], args[0])
+
+    if not isinstance(immArg, Instructions.ImmediateOperandBase) or isinstance(memArg, Instructions.ImmediateOperandBase):
+        raise Exception("'test' must take precisely one immediate operand and one memory/register operand.")
+
+    if immArg.operandSize > memArg.operandSize:
+        raise Exception("The immediate operand may not be greater than the memory operand in a 'test' instruction.")
+
+    isWord = memArg.operandSize > size8
+    if memArg.operandIndex == 0 and memArg.addressingMode == "register":
+        asm.write([0xa8 | int(isWord) & 0x01])
+        asm.writeArgument(immArg.cast(memArg.operandSize))
+    else:
+        asm.write([0xf6 | int(isWord) & 0x01])
+        asm.write([createModRM(memArg.addressingMode, 0, memArg.operandIndex)])
+        asm.writeArgument(immArg.cast(memArg.operandSize))
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
@@ -190,8 +211,13 @@ instructionBuilders = {
     #     http://pdos.csail.mit.edu/6.828/2006/readings/i386/c17.htm
 
     "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
+    "hlt"   : defineSimpleInstruction("hlt", [0xf4]),
     "nop"   : defineSimpleInstruction("nop", [0x90]),
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
+    "cld"   : defineSimpleInstruction("cld", [0xfc]),
+    "cli"   : defineSimpleInstruction("cli", [0xfa]),
+    "cmc"   : defineSimpleInstruction("cmc", [0xf5]),
+    "clts"  : defineSimpleInstruction("clts", [0x0f, 0x06]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
     "ret"   : writeRetInstruction,
     "leave" : defineSimpleInstruction("leave", [0xc9]),
@@ -213,6 +239,7 @@ instructionBuilders = {
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
+    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21), writeTestImmediateInstruction),
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
 	"call"	: writeCallInstruction,
