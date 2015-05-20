@@ -107,6 +107,16 @@ def writeEnterInstruction(asm, args):
     asm.writeArgument(args[0].cast(size16))
     asm.writeArgument(args[1].cast(size8))
 
+def writeRetInstruction(asm, args):
+    if len(args) > 1 or (len(args) > 0 and args[0].operandSize > size16):
+        raise Exception("'ret' takes at most one 16-bit operand.")
+
+    if len(args) == 0 or args[0].operandSize == size0:
+        writeSimpleInstruction("ret", [0xc3], asm, args)
+    else:
+        asm.write([0xc2])
+        asm.writeArgument(args[0].cast(size16))
+
 def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
     asm.write([prefix])
     instructionBuilder(asm, args)
@@ -183,7 +193,7 @@ instructionBuilders = {
     "nop"   : defineSimpleInstruction("nop", [0x90]),
     "clc"   : defineSimpleInstruction("clc", [0xf8]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
-    "ret"   : defineSimpleInstruction("ret", [0xc3]),
+    "ret"   : writeRetInstruction,
     "leave" : defineSimpleInstruction("leave", [0xc9]),
     "pusha" : defineSimpleInstruction("pusha", [0x60]),
     "popa"  : defineSimpleInstruction("popa", [0x61]),
