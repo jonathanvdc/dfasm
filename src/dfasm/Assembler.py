@@ -219,6 +219,11 @@ instructionBuilders = {
     "cmc"   : defineSimpleInstruction("cmc", [0xf5]),
     "clts"  : defineSimpleInstruction("clts", [0x0f, 0x06]),
     "stc"   : defineSimpleInstruction("stc", [0xf9]),
+    "std"   : defineSimpleInstruction("std", [0xfd]),
+    "sti"   : defineSimpleInstruction("sti", [0xfb]),
+    "sahf"  : defineSimpleInstruction("sahf", [0x9e]),
+    "lahf"  : defineSimpleInstruction("lahf", [0x9f]),
+    "lock"  : defineSimpleInstruction("lock", [0xf0]),
     "iret"  : defineSimpleInstruction("iret", [0xcf]),
     "iretd" : defineSimpleInstruction("iretd", [0xcf]), # Same mnemonic, apparently
     "ret"   : writeRetInstruction,
