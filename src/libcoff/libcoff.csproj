@@ -40,10 +40,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArrayOperations.cs" />
+    <Compile Include="AuxiliarySymbols.cs" />
     <Compile Include="BinaryBuffer.cs" />
     <Compile Include="CoffHeader.cs" />
     <Compile Include="CoffHeaderFlags.cs" />
     <Compile Include="CoffWriter.cs" />
+    <Compile Include="IWritable.cs" />
     <Compile Include="ObjectFile.cs" />
     <Compile Include="PeCoffName.cs" />
     <Compile Include="Relocation.cs" />

@@ -97,7 +97,6 @@ namespace libcoff
             var symbolTablePosition = stream.Position;
             writer.WriteAt(symbolTableReference, checked((uint)symbolTablePosition));
 
-            var auxularySymbol = new byte[Symbol.Size];
             for (var i = 0; i < file.Symbols.Count; i++)
             {
                 var e = file.Symbols[i];
@@ -121,8 +120,10 @@ namespace libcoff
                 writer.Write((byte)e.StorageClass);
                 writer.Write((byte)e.AuxiliarySymbols.Count);
 
-                for (var j = 0; j < e.AuxiliarySymbols.Count; j++)
-                    writer.Write(auxularySymbol);
+                foreach (var item in e.AuxiliarySymbols)
+                {
+                    item.WriteTo(writer);
+                }
             }
 
             stringTable.WriteTo(writer);

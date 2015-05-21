@@ -42,11 +42,23 @@ namespace libcoff
             var align = Is64Bit ? SectionHeaderFlags.Align16Bytes : SectionHeaderFlags.Align4Bytes;
             var arch = Is64Bit ? MachineType.Amd64 : MachineType.I386;
 
-            var dataSection = new Section(".data", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | align);
             var codeSection = new Section(".text", (uint)Code.Length, 0, Code, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemExecute | SectionHeaderFlags.MemRead | SectionHeaderFlags.CntCode | align);
-            var function = new Symbol("func", SymbolMode.Normal, 0, codeSection, new SymbolType(), StorageClass.External, new AuxiliarySymbol[] { });
-            var sections = new Section[] { dataSection, codeSection };
-            var symbols = new Symbol[] { function };
+            var dataSection = new Section(".data", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntInitializedData | align);
+            var bssSection = new Section(".bss", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntUninitializedData | align);
+
+            var sections = new Section[] { codeSection, dataSection, bssSection };
+
+            var symbols = new List<Symbol>();
+
+            symbols.Add(new Symbol(".file", SymbolMode.Debug, 0, codeSection, new SymbolType(), StorageClass.File, new IAuxiliarySymbol[] { new AuxiliaryFileName("fake") }));
+            for (int i = 0; i < sections.Length; i++)
+			{
+                var item = sections[i];
+			    symbols.Add(new Symbol(item.Name, SymbolMode.Normal, 0, item, new SymbolType(), StorageClass.Static, new IAuxiliarySymbol[] { new AuxiliarySectionDefinition(item, (ushort)(i + 1)) }));
+			}
+
+            symbols.Add(new Symbol("func", SymbolMode.Normal, 0, codeSection, new SymbolType(), StorageClass.External, new IAuxiliarySymbol[] { }));
+            
             return new ObjectFile(arch, sections, symbols, 0);
         }
     }

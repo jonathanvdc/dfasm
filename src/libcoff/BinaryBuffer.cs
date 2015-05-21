@@ -8,7 +8,12 @@ namespace libcoff
 {
     public sealed class BinaryBuffer
     {
-        List<byte> data;
+        public BinaryBuffer()
+        {
+            this.data = new List<byte>();
+        }
+
+        private List<byte> data;
 
         public byte this[int i]
         {
@@ -37,11 +42,6 @@ namespace libcoff
         public byte[] ToArray()
         {
             return data.ToArray();
-        }
-
-        public BinaryBuffer()
-        {
-            this.data = new List<byte>();
         }
 
         public void Append(BinaryBuffer value)

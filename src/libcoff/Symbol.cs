@@ -14,17 +14,6 @@ namespace libcoff
         Debug,
     }
 
-    public struct AuxiliarySymbol
-    {
-        public AuxiliarySymbol(IReadOnlyList<byte> data)
-        {
-            this = default(AuxiliarySymbol);
-            this.Data = data;
-        }
-
-        public IReadOnlyList<byte> Data { get; private set; }
-    }
-
     public class Symbol
     {
         public Symbol(
@@ -34,7 +23,7 @@ namespace libcoff
             Section section,
             SymbolType type,
             StorageClass storageClass,
-            IReadOnlyList<AuxiliarySymbol> auxiliarySymbols)
+            IReadOnlyList<IAuxiliarySymbol> auxiliarySymbols)
         {
             this.Name = name;
             this.Mode = mode;
@@ -53,6 +42,6 @@ namespace libcoff
         public Section Section { get; private set; }
         public SymbolType Type { get; private set; }
         public StorageClass StorageClass { get; private set; }
-        public IReadOnlyList<AuxiliarySymbol> AuxiliarySymbols { get; private set; }
+        public IReadOnlyList<IAuxiliarySymbol> AuxiliarySymbols { get; private set; }
     }
 }

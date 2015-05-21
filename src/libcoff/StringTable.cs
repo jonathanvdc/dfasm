@@ -9,7 +9,12 @@ namespace libcoff
 {
     public class StringTable
     {
-        BinaryBuffer buffer;
+        public StringTable()
+        {
+            buffer = new BinaryBuffer();
+        }
+
+        private BinaryBuffer buffer;
 
         public BinaryBuffer Buffer
         {
@@ -108,11 +113,6 @@ namespace libcoff
             var length = reader.ReadInt32();
             ret.Buffer.Append(reader.ReadBytes(length));
             return ret;
-        }
-
-        public StringTable()
-        {
-            buffer = new BinaryBuffer();
         }
     }
 }
