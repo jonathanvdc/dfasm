@@ -10,6 +10,20 @@ def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
     return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
 
+def writeUnaryInstruction(name, opCode, extension, asm, args):
+    if len(args) != 1:
+        raise Exception("'" + name + "' takes precisely one argument.")
+    arg = args[0]
+
+    isWord = arg.operandSize > size8
+    argIndex = arg.operandIndex
+
+    opcodeByte = opCode << 1 | (0x01 if isWord else 0x00)
+    operandsByte = createModRM(arg.addressingMode, extension, argIndex)
+
+    asm.write([opcodeByte, operandsByte])
+    asm.writeArgument(arg)
+
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
         raise Exception("'" + name + "' takes precisely two arguments.")
@@ -176,6 +190,9 @@ def definePrefixedInstruction(prefix, instructionBuilder):
 def defineSimpleInstruction(name, opCode):
     return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
 
+def defineUnaryInstruction(name, opCode, extension):
+    return lambda asm, args: writeUnaryInstruction(name, opCode, extension, asm, args)
+
 def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
     return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
 
@@ -265,6 +282,10 @@ instructionBuilders = {
     "movsx" : defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False),
     "movzx" : defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
+    "not"   : defineUnaryInstruction("not", 0xf6 >> 1, 2),
+    "neg"   : defineUnaryInstruction("neg", 0xf6 >> 1, 3),
+    "inc"   : defineUnaryInstruction("inc", 0xfe >> 1, 0),
+    "dec"   : defineUnaryInstruction("dec", 0xfe >> 1, 1),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
