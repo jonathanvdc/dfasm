@@ -1,4 +1,5 @@
 from Encoding import *
+import Symbols
 
 class Register(object):
     """ Represents a processor register. """
@@ -127,6 +128,60 @@ class ImmediateOperandBase(Operand):
     """ A base class for immediate and label operands. """
     pass
 
+class SymbolOperand(Operand):
+    """ A type for operands that refer to a symbol. """
+    def __init__(self, symbol, operandSize, offset, relativeOffset = None):
+        self.symbol = symbol
+        self.operandSize = operandSize
+        self.offset = offset
+        self.relativeOffset = relativeOffset
+
+    @property
+    def isRelative(self):
+        """ Checks if this symbol operand is relative. """
+        return self.relativeOffset is not None
+
+    @property
+    def isAbsolute(self):
+        """ Checks if this symbol operand is absolute. """
+        return not self.isRelative
+
+    @property
+    def dataSize(self):
+        """ Gets the number of bytes of data in this operand. """
+        return self.operandSize.size
+
+    def canWrite(self, asm):
+        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
+        return self.symbol.isDefined and (asm.baseOffset is not None or self.isRelative)
+
+    def getSymbolOffset(self, baseAddress):
+        """ Gets the symbol's offset, based on the given base address. """
+        return self.symbol.offset + (-self.relativeOffset if self.isRelative else baseAddress)
+
+    def getData(self, asm):
+        if self.isAbsolute or self.symbol.isExternal:
+            asm.relocations.append(self)
+        return self.operandSize.encoding(self.getSymbolOffset(asm.baseOffset))
+
+    def makeRelative(self, relativeOffset):
+        """ Turns this operand into a relative operand. """
+        return SymbolOperand(self.symbol, self.operandSize, self.offset, relativeOffset)
+
+    def makeAbsolute(self):
+        """ Turns this operand into an absolute operand. """
+        return SymbolOperand(self.symbol, self.operandSize, self.offset)
+
+    def cast(self, size):
+        """ "Casts" this operand to match the given size. """
+        return SymbolOperand(self.symbol, size, self.offset, self.relativeOffset)
+
+    def __str__(self):
+        return str(self.symbol)
+
+    def __repr__(self):
+        return "SymbolOperand(%r, %r, %r, %r)" % (self.symbol, self.operandSize, self.offset, self.relativeOffset)
+
 class ImmediateOperand(ImmediateOperandBase):
     """ Represents an immediate operand. """
     def __init__(self, value, operandSize):
@@ -155,9 +210,9 @@ class ImmediateOperand(ImmediateOperandBase):
     def toUnsigned(self):
         return ImmediateOperand.createUnsigned(self.value)
 
-    def makeRelative(self, offset):
-        """ Turns this immediate operand into an relative operand. """
-        return ImmediateOperand.createSigned(self.value - offset)
+    def makeSymbol(self, asm, offset):
+        """ Turns this immediate operand into a symbol operand. """
+        return SymbolOperand(asm.getSymbolAt(self.value), self.operandSize, offset)
 
     @staticmethod
     def createSigned(value):
@@ -191,11 +246,17 @@ class LabelOperandBase(ImmediateOperandBase):
     """ A base class for label operands. """
     def __init__(self, labelName, operandSize):
         self.labelName = labelName
-        self.operandSize = operandSize  
+        self.operandSize = operandSize
+        self.placementIndex = None
+
+    def createOperand(self, asm):
+        if self.placementIndex is None:
+            self.placementIndex = asm.index
+        return self.makeSymbol(asm, self.placementIndex)
 
     def canWrite(self, asm):
         """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
-        return self.labelName in asm.labels
+        return self.createOperand(asm).canWrite(asm)
 
     def makeRelative(self, offset):
         """ Turns this label operand into a relative operand. """
@@ -219,8 +280,9 @@ class RelativeLabelOperand(LabelOperandBase):
         self.labelName = labelName
         self.operandSize = operandSize
 
-    def createOperand(self, asm):
-        return ImmediateOperand(asm.labels[self.labelName] - self.offset, self.operandSize)
+    def makeSymbol(self, asm, offset):
+        """ Turns this label operand into a symbol operand. """
+        return SymbolOperand(asm.getSymbol(self.labelName), self.operandSize, offset, self.offset)
 
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
@@ -230,13 +292,14 @@ class RelativeLabelOperand(LabelOperandBase):
         return "RelativeLabelOperand(%r, %r, %r)" % (self.offset, self.labelName, self.operandSize)
 
 class LabelOperand(LabelOperandBase):
-    """ Describes a label operand. """
-    def createOperand(self, asm):
-        return ImmediateOperand(asm.labels[self.labelName], self.operandSize)
-
+    """ Describes an absolute label operand. """
     def cast(self, size):
         """ "Casts" this operand to match the given size. """
         return LabelOperand(self.labelName, size)
+
+    def makeSymbol(self, asm, offset):
+        """ Turns this label operand into a symbol operand. """
+        return SymbolOperand(asm.getSymbol(self.labelName), self.operandSize, offset)
 
     def __repr__(self):
         return "LabelOperand(%r, %r)" % (self.labelName, self.operandSize)

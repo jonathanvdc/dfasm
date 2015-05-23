@@ -37,5 +37,17 @@ namespace libcoff
             ret[array.Length] = value;
             return ret;
         }
+
+        public static int IndexOf<T>(this IReadOnlyList<T> Values, T Value)
+        {
+            for (int i = 0; i < Values.Count; i++)
+            {
+                if (object.Equals(Values[i], Value))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
     }
 }

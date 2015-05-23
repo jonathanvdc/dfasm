@@ -25,16 +25,23 @@ namespace libcoff
         public IReadOnlyList<Section> Sections { get; private set; }
         public MachineType Machine { get; private set; }
 
-        public int GetSectionIndex(Section Value)
+        public int GetSymbolIndex(Symbol Value)
         {
-            for (int i = 0; i < Sections.Count; i++)
+            int i = 0;
+            foreach (var item in Symbols)
             {
-                if (Sections[i] == Value)
+                if (item == Value)
                 {
                     return i;
                 }
+                i += item.AuxiliarySymbols.Count + 1;
             }
             return -1;
+        }
+
+        public int GetSectionIndex(Section Value)
+        {
+            return Sections.IndexOf(Value);
         }
 
         public static ObjectFile FromCode(byte[] Code, bool Is64Bit)
@@ -42,9 +49,9 @@ namespace libcoff
             var align = Is64Bit ? SectionHeaderFlags.Align16Bytes : SectionHeaderFlags.Align4Bytes;
             var arch = Is64Bit ? MachineType.Amd64 : MachineType.I386;
 
-            var codeSection = new Section(".text", (uint)Code.Length, 0, Code, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemExecute | SectionHeaderFlags.MemRead | SectionHeaderFlags.CntCode | align);
-            var dataSection = new Section(".data", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntInitializedData | align);
-            var bssSection = new Section(".bss", 0, 0, new byte[] { }, new Relocation[] { }, new object[] { }, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntUninitializedData | align);
+            var codeSection = new Section(".text", 0, SectionHeaderFlags.MemExecute | SectionHeaderFlags.MemRead | SectionHeaderFlags.CntCode | align, Code);
+            var dataSection = new Section(".data", 0, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntInitializedData | align);
+            var bssSection = new Section(".bss", 0, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntUninitializedData | align);
 
             var sections = new Section[] { codeSection, dataSection, bssSection };
 

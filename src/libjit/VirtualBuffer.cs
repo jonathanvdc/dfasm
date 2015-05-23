@@ -9,27 +9,43 @@ namespace libjit
 {
     public class VirtualBuffer : IDisposable
     {
-        public VirtualBuffer(IntPtr Pointer)
+        public VirtualBuffer(IntPtr Pointer, uint Size)
         {
             this.Pointer = Pointer;
+            this.Size = Size;
         }
 
         public IntPtr Pointer { get; private set; }
+        public long Address { get { return (long)Pointer; } }
+        public uint Size { get; private set; }
 
         public void Dispose()
         {
             VirtualFree(Pointer, 0, MEM_FREE);
         }
 
-        public static VirtualBuffer Create(IEnumerable<byte> Data)
+        public void Write(byte[] Data)
         {
-            return Create(Data.ToArray());
+            Marshal.Copy(Data, 0, Pointer, Data.Length);
         }
+
+        public byte[] Read()
+        {
+            var data = new byte[Size];
+            Marshal.Copy(Pointer, data, 0, (int)Size);
+            return data;
+        }
+
         public static VirtualBuffer Create(byte[] Data)
         {
-            IntPtr buf = VirtualAlloc(IntPtr.Zero, (uint)Data.Length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-            Marshal.Copy(Data, 0, buf, Data.Length);
-            return new VirtualBuffer(buf);
+            var buf = Create((uint)Data.Length);
+            buf.Write(Data);
+            return buf;
+        }
+        public static VirtualBuffer Create(uint Size)
+        {
+            IntPtr buf = VirtualAlloc(IntPtr.Zero, Size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+            return new VirtualBuffer(buf, Size);
         }
 
         public const uint PAGE_EXECUTE_READWRITE = 0x40;

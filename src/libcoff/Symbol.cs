@@ -16,6 +16,19 @@ namespace libcoff
 
     public class Symbol
     {
+        public Symbol(string name, uint value, Section section, StorageClass storageClass)
+            : this(name, SymbolMode.Normal, value, section, storageClass)
+        {
+        }
+        public Symbol(string name, SymbolMode mode, uint value, Section section, StorageClass storageClass)
+        {
+            this.Name = name;
+            this.Value = value;
+            this.Section = section;
+            this.StorageClass = storageClass;
+            this.Mode = mode;
+            this.AuxiliarySymbols = new IAuxiliarySymbol[0];
+        }
         public Symbol(
             string name,
             SymbolMode mode,

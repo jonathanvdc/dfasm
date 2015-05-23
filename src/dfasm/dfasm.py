@@ -16,9 +16,9 @@ from Parser import *
 print("Ready.")
 
 debug = False
-jit = False
+jit = True
 repl = False
-output = True
+output = False
 
 def printDebug(value):
     if debug:
@@ -27,6 +27,52 @@ def printDebug(value):
 def printHex(values):
     text = "{ " + ", ".join(map(lambda x: hex(x) if isinstance(x, int) else str(x), values)) + " }"
     print(text)
+
+def getCoffStorageClass(symbol):
+    if symbol.isExternal:
+        return libcoff.StorageClass.ExternalDef
+    elif symbol.isPublic:
+        return libcoff.StorageClass.External
+    else:
+        return libcoff.StorageClass.Static
+
+def getCoffRelocationType(is64Bit, reloc):
+    if reloc.operandSize != size32:
+        raise Exception("Non-32-bit relocations are not supported.")
+
+    if reloc.isRelative: # I don't think we need to account for 16-bit relocations.
+                         # We don't emit those, and doing so anyway would be dangerous.
+        return libcoff.RelocationType.AMD64_REL32 if is64Bit else libcoff.RelocationType.I386_REL32
+    else:
+        return libcoff.RelocationType.AMD64_ADDR32 if is64Bit else libcoff.RelocationType.I386_DIR32
+
+def createObjectFile(asm, is64Bit):
+    align = libcoff.SectionHeaderFlags.Align16Bytes if is64Bit else SectionHeaderFlags.Align4Bytes
+    arch = libcoff.MachineType.Amd64 if is64Bit else libcoff.MachineType.I386
+
+    code = System.Array[System.Byte](asm.code)
+
+    codeSection = libcoff.Section(".text", 0, libcoff.SectionHeaderFlags.MemExecute | libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.CntCode | align, code)    
+    dataSection = libcoff.Section(".data", 0, libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.MemWrite | libcoff.SectionHeaderFlags.CntInitializedData | align)
+    bssSection = libcoff.Section(".bss", 0, libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.MemWrite | libcoff.SectionHeaderFlags.CntUninitializedData | align)
+
+    sections = System.Array[libcoff.Section]([codeSection, dataSection, bssSection])
+
+    symbols = System.Collections.Generic.List[libcoff.Symbol]()
+
+    symbols.Add(libcoff.Symbol(".file", libcoff.SymbolMode.Debug, 0, codeSection, libcoff.SymbolType(), libcoff.StorageClass.File, System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliaryFileName("fake")])))
+    for i in range(len(sections)):
+        item = sections[i]
+        symbols.Add(libcoff.Symbol(item.Name, libcoff.SymbolMode.Normal, 0, item, libcoff.SymbolType(), libcoff.StorageClass.Static, System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliarySectionDefinition(item, i + 1)])))
+
+    for sym in asm.symbols.values():
+        newSymbol = libcoff.Symbol(sym.name, sym.offset, codeSection, getCoffStorageClass(sym))
+        symbols.Add(newSymbol)
+        for reloc in asm.relocations:
+            if reloc.symbol == sym:
+                codeSection.Relocations.Add(libcoff.Relocation(reloc.offset, newSymbol, getCoffRelocationType(is64Bit, reloc)))
+            
+    return libcoff.ObjectFile(arch, sections, symbols, libcoff.CoffHeaderFlags())
 
 asm = Assembler.Assembler()
 
@@ -57,14 +103,20 @@ while not sys.stdin.closed:
         printHex(asm.code[previousIndex:])
         previousIndex = len(asm.code)
     
-asm.patchLabels()
 print("")
 if jit:
-    func = libjit.JitFunction.Create(System.Array[System.Byte](asm.code))
+    virtBuf = libjit.VirtualBuffer.Create(asm.index)
+    asm.baseOffset = virtBuf.Address
+    asm.patchLabels()
+    virtBuf.Write(System.Array[System.Byte](asm.code))
+    func = libjit.JitFunction(virtBuf)
     print(func.Invoke[int]())
     func.Dispose()
 elif repl:
+    asm.patchLabels()
     printHex(asm.code)
 elif output:
-    coffFile = libcoff.ObjectFile.FromCode(System.Array[System.Byte](asm.code), True)
+    asm.baseOffset = 0
+    asm.patchLabels()
+    coffFile = createObjectFile(asm, True)
     libcoff.CoffWriter.WriteToFile("a.o", coffFile)

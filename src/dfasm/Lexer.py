@@ -57,7 +57,8 @@ asmRegexes = {
     "lessthanlessthan"          :   "<<",
     "dot"                       :   ".",
     "colon"                     :   ":",
-    "semicolon"                 :   ";"
+    "semicolon"                 :   ";",
+    "dot"                       :   "."
 }
 
 # Compile regexes to automata.

@@ -301,6 +301,25 @@ class LabelNode(object):
     def __repr__(self):
         return "LabelNode(%r, %r)" % (self.name, self.colon)
 
+class DirectiveNodeBase(object):
+    """ A base class for assembler directives. """
+    pass
+
+class GlobalDirective(DirectiveNodeBase):
+    def __init__(self, dot, globl, name):
+        self.dot = dot
+        self.globl = globl
+        self.name = name
+
+    def __str__(self):
+        return str(self.dot) + str(self.globl) + " " + str(self.name)
+
+    def __repr__(self):
+        return "GlobalDirective(%r, %r, %r)" % (self.dot, self.globl, self.name)
+
+    def apply(self, asm):
+        asm.getSymbol(self.name.contents).makePublic()
+
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
 
@@ -431,9 +450,26 @@ def parsePrimary(tokens):
     else:
         return parseLiteral(tokens)
 
-def parseInstruction(tokens):
-    """ Parse a label or an instruction.
+def parseDirective(tokens, dot):
+    """ Parses an assembler directive.
+
+        .globl example
+        ^~~~~~~~~~~~~~
+    """
+
+    dirName = tokens.nextNoTrivia()
+    if dirName.contents == "globl":
+        symName = tokens.nextNoTrivia()
+        return GlobalDirective(dot, dirName, symName)
+    else:
+        raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     
+
+def parseInstruction(tokens):
+    """ Parse a label, directive or instruction.
+        
+        .globl example
+        ^~~~~~~~~~~~~~
         example:
         ^~~~~~~~
             mov eax, ebx
@@ -441,6 +477,9 @@ def parseInstruction(tokens):
     """
 
     first = tokens.nextNoTrivia()
+
+    if first.type == "dot":
+        return parseDirective(tokens, first)
 
     # If a colon follows the first token, this is a label.
     if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":

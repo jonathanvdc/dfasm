@@ -8,17 +8,17 @@ using System.Threading.Tasks;
 namespace libcoff
 {
     // libcoff is a derivative work of http://www.codeproject.com/Articles/705281/An-x-assembler-with-register-allocation,
-    // licensed under the Code Project Open License (CPOL) (http://www.codeproject.com/info/cpol10.aspx)
+    // licensed from Dávid Kocsis under the Code Project Open License (CPOL) (http://www.codeproject.com/info/cpol10.aspx)
 
     public static class CoffWriter
     {
-        private static void WriteRelocs(BinaryWriter writer, IReadOnlyList<Relocation> relocations)
+        private static void WriteRelocs(BinaryWriter writer, ObjectFile File, IReadOnlyList<Relocation> relocations)
         {
             for (var i = 0; i < relocations.Count; i++)
             {
                 var e = relocations[i];
                 writer.Write(e.VirtualAddress);
-                writer.Write(e.SymbolIndex);
+                writer.Write((uint)File.GetSymbolIndex(e.Symbol));
                 writer.Write((ushort)e.Type);
             }
         }
@@ -86,7 +86,7 @@ namespace libcoff
                 writer.WriteAt(sectionRawDataReferences[i], checked((uint)position));
 
                 position = stream.Position;
-                WriteRelocs(writer, e.Relocations);
+                WriteRelocs(writer, file, e.Relocations);
                 writer.WriteAt(sectionRelocationReferences[i], checked((uint)position));
 
                 position = stream.Position;

@@ -38,7 +38,7 @@ namespace libjit
             Buffer.Dispose();
         }
 
-        public static JitFunction Create(IEnumerable<byte> Data)
+        public static JitFunction Create(byte[] Data)
         {
             return new JitFunction(VirtualBuffer.Create(Data));
         }

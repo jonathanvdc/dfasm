@@ -1,5 +1,6 @@
 from Parser import *
 from Encoding import *
+import Symbols
 
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
@@ -154,18 +155,17 @@ def writeTestImmediateInstruction(asm, args):
         asm.write([createModRM(memArg.addressingMode, 0, memArg.operandIndex)])
         asm.writeArgument(immArg.cast(memArg.operandSize))
 
-def makeRelativeOperand(shortOffset, longOffset, arg):
-    rel = arg.makeRelative(shortOffset)
-    if rel.operandSize <= size8:
-        return rel.cast(size8)
+def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
+    if arg.makeRelative(shortOffset).operandSize <= size8:
+        return arg.makeSymbol(asm, asm.index).makeRelative(shortOffset).cast(size8)
     else:
-        return arg.makeRelative(longOffset).cast(size32)
+        return arg.makeSymbol(asm, asm.index).makeRelative(longOffset).cast(size32)
 
 def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
         raise Exception("'" + name + "' takes precisely one immediate operand.")
 
-    relOp = makeRelativeOperand(asm.index + 2, asm.index + 6, args[0])
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
 
     if relOp.operandSize == size8:
         asm.write([0x70 | conditionOpCode])
@@ -225,13 +225,13 @@ def writeCallInstruction(asm, args): # Sieberts code
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
         raise Exception("'call' takes precisely one immediate operand.")
     asm.write([0xe8])
-    asm.writeArgument(args[0].makeRelative(asm.index + 4).cast(size32))
+    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
     
 def writeJumpInstruction(asm, args): # tevens
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
         raise Exception("'jmp' takes precisely one immediate operand.")
 
-    relOp = makeRelativeOperand(asm.index + 2, asm.index + 5, args[0])
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
 
     if relOp.operandSize == size8:
         asm.write([0xeb])
@@ -338,14 +338,47 @@ instructionBuilders = {
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
 
-    def __init__(self):
-        # Maps label names to their addresses when they are encountered.
-        self.labels = {}
-
+    def __init__(self, baseOffset = None):
         # A list of byte values representing the bytecode.
         self.code = []
+        self.baseOffset = baseOffset # The base offset is absolutely necessary for absolute things,
+                                     # but we may choose to provide it later on.
+
+        # A dictionary of symbols (these include labels).
+        self.symbols = {}
+
+        # A list of relocation records, which are SymbolOperand objects.
+        self.relocations = []
 
         self.index = 0
+
+    def getSymbol(self, name):
+        """ Gets the symbol with the given name. 
+            If no such symbol exists, one will be appointed to you.  """
+        if not self.hasSymbol(name):
+            self.defineSymbol(Symbols.LocalSymbol(name))
+        return self.symbols[name]
+
+    def getSymbolAt(self, offset):
+        """ Gets the symbol at the given offset. 
+            If no such symbol exists, one will be appointed to you.  """
+        for item in self.symbols:
+            if item.offset == offset:
+                return item
+        return self.defineSymbol(Symbols.LocalSymbol("#" + hex(offset), offset))
+
+    def hasSymbol(self, name):
+        """ Finds out if there is a symbol with the given name. """
+        return name in self.symbols
+
+    def defineSymbol(self, symbol):
+        """ Defines a symbol. """
+        if self.hasSymbol(symbol.name):
+            self.symbols[symbol.name].define(symbol)
+        else:
+            self.symbols[symbol.name] = symbol
+
+        return self.getSymbol(symbol.name)
 
     def patchLabels(self):
         """ Patches all labels. """
@@ -368,9 +401,11 @@ class Assembler(object):
 
     def process(self, node):
         if isinstance(node, LabelNode):
-            self.labels[str(node.name)] = self.index
+            self.defineSymbol(Symbols.LocalSymbol(node.name.contents, self.index, False))
         elif isinstance(node, InstructionNode):
             self.processInstruction(node)
+        elif isinstance(node, DirectiveNodeBase):
+            node.apply(self)
         else:
             raise ValueError('invalid assembly node')
 
