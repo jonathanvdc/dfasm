@@ -4,7 +4,8 @@ main:
     mov $msg, %ecx
     call printf
 
-    mov $0, %eax
+    mov $0, %ecx
+    call ExitProcess
     ret
 
 msg:
