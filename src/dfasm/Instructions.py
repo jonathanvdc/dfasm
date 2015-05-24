@@ -157,6 +157,8 @@ class SymbolOperand(Operand):
 
     def getSymbolOffset(self, baseAddress):
         """ Gets the symbol's offset, based on the given base address. """
+        if self.symbol.isExternal:
+            return 0
         return self.symbol.offset + (-self.relativeOffset if self.isRelative else baseAddress)
 
     def getData(self, asm):

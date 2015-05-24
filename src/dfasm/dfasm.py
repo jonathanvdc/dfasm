@@ -16,9 +16,9 @@ from Parser import *
 print("Ready.")
 
 debug = False
-jit = True
+jit = False
 repl = False
-output = False
+output = True
 
 def printDebug(value):
     if debug:
@@ -29,9 +29,7 @@ def printHex(values):
     print(text)
 
 def getCoffStorageClass(symbol):
-    if symbol.isExternal:
-        return libcoff.StorageClass.ExternalDef
-    elif symbol.isPublic:
+    if symbol.isExternal or symbol.isPublic:
         return libcoff.StorageClass.External
     else:
         return libcoff.StorageClass.Static
@@ -66,7 +64,7 @@ def createObjectFile(asm, is64Bit):
         symbols.Add(libcoff.Symbol(item.Name, libcoff.SymbolMode.Normal, 0, item, libcoff.SymbolType(), libcoff.StorageClass.Static, System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliarySectionDefinition(item, i + 1)])))
 
     for sym in asm.symbols.values():
-        newSymbol = libcoff.Symbol(sym.name, sym.offset, codeSection, getCoffStorageClass(sym))
+        newSymbol = libcoff.Symbol(sym.name, sym.offset, codeSection if not sym.isExternal else None, getCoffStorageClass(sym))
         symbols.Add(newSymbol)
         for reloc in asm.relocations:
             if reloc.symbol == sym:

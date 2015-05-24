@@ -33,7 +33,7 @@ namespace libcoff
 
         public static T[] Concat<T>(T[] array, T value)
         {
-            var ret = new T[array.Length + 1];
+            var ret = Resize<T>(array, array.Length + 1);
             ret[array.Length] = value;
             return ret;
         }

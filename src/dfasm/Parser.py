@@ -1,6 +1,7 @@
 import Instructions
 import Assembler
 import Lexer
+import Symbols
 import math
 from Encoding import *
 
@@ -320,6 +321,21 @@ class GlobalDirective(DirectiveNodeBase):
     def apply(self, asm):
         asm.getSymbol(self.name.contents).makePublic()
 
+class ExternDirective(DirectiveNodeBase):
+    def __init__(self, dot, extern, name):
+        self.dot = dot
+        self.extern = extern
+        self.name = name
+
+    def __str__(self):
+        return str(self.dot) + str(self.extern) + " " + str(self.name)
+
+    def __repr__(self):
+        return "ExternDirective(%r, %r, %r)" % (self.dot, self.extern, self.name)
+
+    def apply(self, asm):
+        asm.defineSymbol(Symbols.ExternalSymbol(self.name.contents))
+
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
 
@@ -461,6 +477,9 @@ def parseDirective(tokens, dot):
     if dirName.contents == "globl":
         symName = tokens.nextNoTrivia()
         return GlobalDirective(dot, dirName, symName)
+    elif dirName.contents == "extern":
+        symName = tokens.nextNoTrivia()
+        return ExternDirective(dot, dirName, symName)
     else:
         raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     

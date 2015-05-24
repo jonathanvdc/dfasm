@@ -103,14 +103,14 @@ namespace libcoff
 
         public void WriteTo(BinaryWriter writer)
         {
-            writer.Write(buffer.Length);
+            writer.Write(buffer.Length + 4);
             writer.Write(buffer.ToArray());
         }
 
         public static StringTable ReadFrom(BinaryReader reader)
         {
             var ret = new StringTable();
-            var length = reader.ReadInt32();
+            int length = Math.Max(reader.ReadInt32() - 4, 0);
             ret.Buffer.Append(reader.ReadBytes(length));
             return ret;
         }
