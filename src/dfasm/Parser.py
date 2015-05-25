@@ -336,26 +336,28 @@ class ExternDirective(DirectiveNodeBase):
     def apply(self, asm):
         asm.defineSymbol(Symbols.ExternalSymbol(self.name.contents))
 
-class ByteDataDirective(DirectiveNodeBase):
-    def __init__(self, dotToken, byteToken, dataList):
+class IntegerDataDirective(DirectiveNodeBase):
+    def __init__(self, dotToken, typeTokenToken, size, dataList):
         self.dotToken = dotToken
-        self.byteToken = byteToken
+        self.typeTokenToken = typeTokenToken
+        self.size = size
         self.dataList = dataList
 
     def __str__(self):
-        return str(self.dotToken) + str(self.byteToken) + " " + str(self.dataList)
+        return str(self.dotToken) + str(self.typeTokenToken) + " " + str(self.dataList)
 
     def __repr__(self):
-        return "ByteDataDirective(%r, %r, %r)" % (self.dotToken, self.byteToken, self.dataList)
+        return "IntegerDataDirective(%r, %r, %r, %r)" % (self.dotToken, self.typeTokenToken, self.size, self.dataList)
 
     def apply(self, asm):
         for item in self.dataList.toOperands(asm):
             if not isinstance(item, Instructions.ImmediateOperandBase):
-                raise Exception("'.byte' directive arguments must be immediate operands.")
+                raise Exception("'." + str(self.typeTokenToken) + "' directive arguments must be immediate operands.")
             val = item.toUnsigned()
-            if item.operandSize > size8:
-                raise Exception("'.byte' directive arguments must be in the 0-255 range.")
-            asm.writeArgument(item.cast(size8))
+            maxSize = 2 ** (self.size.size * 8) - 1
+            if item.value < 0 or item.value > maxSize:
+                raise Exception("'." + str(self.typeTokenToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
+            asm.writeArgument(item.cast(self.size))
 
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
@@ -503,7 +505,13 @@ def parseDirective(tokens, dot):
         return ExternDirective(dot, dirName, symName)
     elif dirName.contents == "byte":
         args = parseArgumentList(tokens)
-        return ByteDataDirective(dot, dirName, args)
+        return IntegerDataDirective(dot, dirName, size8, args)
+    elif dirName.contents == "short" or dirName.contents == "word":
+        args = parseArgumentList(tokens)
+        return IntegerDataDirective(dot, dirName, size16, args)
+    elif dirName.contents == "int" or dirName.contents == "dword":
+        args = parseArgumentList(tokens)
+        return IntegerDataDirective(dot, dirName, size32, args)
     else:
         raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     
