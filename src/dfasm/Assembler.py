@@ -11,15 +11,17 @@ def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
     return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
 
-def writeUnaryInstruction(name, opCode, extension, asm, args):
+def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     if len(args) != 1:
         raise Exception("'" + name + "' takes precisely one argument.")
     arg = args[0]
 
     isWord = arg.operandSize > size8
+    if isWord and byteOnly:
+        raise Exception("'" + name ++ "' requires a byte argument.")
     argIndex = arg.operandIndex
 
-    opcodeByte = opCode << 1 | (0x01 if isWord else 0x00)
+    opcodeByte = opCode | (0x01 if isWord else 0x00)
     operandsByte = createModRM(arg.addressingMode, extension, argIndex)
 
     asm.write([opcodeByte, operandsByte])
@@ -193,6 +195,12 @@ def defineSimpleInstruction(name, opCode):
 def defineUnaryInstruction(name, opCode, extension):
     return lambda asm, args: writeUnaryInstruction(name, opCode, extension, asm, args)
 
+def defineSetCCInstruction(name, byte):
+    def write(asm, args):
+        asm.write([0x0f])
+        writeUnaryInstruction(name, byte, 0, asm, args, byteOnly=True)
+    return write
+
 def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
     return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
 
@@ -282,10 +290,40 @@ instructionBuilders = {
     "movsx" : defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False),
     "movzx" : defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False),
     "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
-    "not"   : defineUnaryInstruction("not", 0xf6 >> 1, 2),
-    "neg"   : defineUnaryInstruction("neg", 0xf6 >> 1, 3),
-    "inc"   : defineUnaryInstruction("inc", 0xfe >> 1, 0),
-    "dec"   : defineUnaryInstruction("dec", 0xfe >> 1, 1),
+    "not"   : defineUnaryInstruction("not", 0xf6, 2),
+    "neg"   : defineUnaryInstruction("neg", 0xf6, 3),
+    "inc"   : defineUnaryInstruction("inc", 0xfe, 0),
+    "dec"   : defineUnaryInstruction("dec", 0xfe, 1),
+    "seta"  : defineSetCCInstruction("seta",  0x97),
+    "setae" : defineSetCCInstruction("setae", 0x93),
+    "setb"  : defineSetCCInstruction("setb",  0x92),
+    "setbe" : defineSetCCInstruction("setbe", 0x96),
+    "setc"  : defineSetCCInstruction("setc",  0x92),
+    "sete"  : defineSetCCInstruction("sete",  0x94),
+    "setg"  : defineSetCCInstruction("setg",  0x9f),
+    "setge" : defineSetCCInstruction("setge", 0x9d),
+    "setl"  : defineSetCCInstruction("setl",  0x9c),
+    "setle" : defineSetCCInstruction("setle", 0x9e),
+    "setna" : defineSetCCInstruction("setna", 0x96),
+    "setna" : defineSetCCInstruction("setna", 0x92),
+    "setnb" : defineSetCCInstruction("setnb", 0x93),
+    "setnb" : defineSetCCInstruction("setnb", 0x97),
+    "setnc" : defineSetCCInstruction("setnc", 0x93),
+    "setne" : defineSetCCInstruction("setne", 0x95),
+    "setng" : defineSetCCInstruction("setng", 0x9e),
+    "setng" : defineSetCCInstruction("setng", 0x9c),
+    "setnl" : defineSetCCInstruction("setnl", 0x9d),
+    "setnl" : defineSetCCInstruction("setnl", 0x9f),
+    "setno" : defineSetCCInstruction("setno", 0x91),
+    "setnp" : defineSetCCInstruction("setnp", 0x9b),
+    "setns" : defineSetCCInstruction("setns", 0x99),
+    "setnz" : defineSetCCInstruction("setnz", 0x95),
+    "seto"  : defineSetCCInstruction("seto",  0x90),
+    "setp"  : defineSetCCInstruction("setp",  0x9a),
+    "setpe" : defineSetCCInstruction("setpe", 0x9a),
+    "setpo" : defineSetCCInstruction("setpo", 0x9b),
+    "sets"  : defineSetCCInstruction("sets",  0x98),
+    "setz"  : defineSetCCInstruction("setz",  0x94),
     "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
     "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
     "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
