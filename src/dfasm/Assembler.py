@@ -186,6 +186,47 @@ def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstruc
     else:
         registerInstructionBuilder(asm, args)
 
+def writeShiftInstruction(name, extension, asm, args):
+    if len(args) != 2:
+        raise Exception("'%s' takes precisely two operands." % name)
+
+    memArg, shiftArg = args
+    wordReg = memArg.operandSize > size8
+
+    if immArg.operandSize == size0:
+        immArg = immArg.cast(size8)
+    elif immArg.operandSize != size8:
+        if not wordReg:
+            raise Exception("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(memArg) + "'")
+        immArg = immArg.cast(memArg.operandSize)
+        
+    shortImm = immArg.operandSize != memArg.operandSize
+
+    opcodeByte = 0x80 | (int(shortImm) & 0x01) << 1 | int(wordReg) & 0x01
+    operandsByte = createModRM(memArg.addressingMode, opCode, memArg.operandIndex)
+    asm.write([opcodeByte, operandsByte])
+    asm.writeArgument(memArg)
+    asm.writeArgument(immArg)
+
+def writeCallInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'call' takes precisely one immediate operand.")
+    asm.write([0xe8])
+    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
+    
+def writeJumpInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'jmp' takes precisely one immediate operand.")
+
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
+
+    if relOp.operandSize == size8:
+        asm.write([0xeb])
+        asm.writeArgument(relOp)
+    else:
+        asm.write([0xe9])
+        asm.writeArgument(relOp)
+
 def definePrefixedInstruction(prefix, instructionBuilder):
     return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
 
@@ -228,25 +269,6 @@ def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, rever
 
 def defineConditionalJumpInstruction(name, conditionOpCode):
     return lambda asm, args: writeConditionalJumpInstruction(asm, args, name, conditionOpCode)
-
-def writeCallInstruction(asm, args): # Sieberts code
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'call' takes precisely one immediate operand.")
-    asm.write([0xe8])
-    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
-    
-def writeJumpInstruction(asm, args): # tevens
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'jmp' takes precisely one immediate operand.")
-
-    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
-
-    if relOp.operandSize == size8:
-        asm.write([0xeb])
-        asm.writeArgument(relOp)
-    else:
-        asm.write([0xe9])
-        asm.writeArgument(relOp)
 
 addressingModeEncodings = {
     "register" : 3,
