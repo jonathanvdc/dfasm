@@ -13,8 +13,6 @@ import libcoff
 from Lexer import *
 from Parser import *
 
-print("Ready.")
-
 debug = False
 jit = False
 repl = False
@@ -76,32 +74,41 @@ asm = Assembler.Assembler()
 
 previousIndex = 0
 
-while not sys.stdin.closed:
-    try:
-        line = ""
-        while line == "" and not sys.stdin.closed:
-            line = sys.stdin.readline().strip()
-    except KeyboardInterrupt:
-        break
-    lexed = lexAsm(line)
-    printDebug(lexed)
-    instrs = parseAllInstructions(TokenStream(lexed))
-    printDebug(instrs)
-    printDebug(repr(instrs))
+if sys.stdin.isatty():
+    print("Ready.")
+    while sys.stdin:
+        try:
+            line = ""
+            while line == "" and sys.stdin:
+                line = sys.stdin.readline().strip()
+        except KeyboardInterrupt:
+            break
+        lexed = lexAsm(line)
+        printDebug(lexed)
+        instrs = parseAllInstructions(TokenStream(lexed))
+        printDebug(instrs)
+        printDebug(repr(instrs))
 
-    for item in instrs:
-        asm.process(item)
+        for item in instrs:
+            asm.process(item)
     
-    if debug:
-        for item in filter(lambda x: isinstance(x, InstructionNode), instrs):
-            print("Operands:")
-            print(repr(item.argumentList.toOperands(asm)))
+        if debug:
+            for item in filter(lambda x: isinstance(x, InstructionNode), instrs):
+                print("Operands:")
+                print(repr(item.argumentList.toOperands(asm)))
 
-    if repl:
-        printHex(asm.code[previousIndex:])
-        previousIndex = len(asm.code)
+        if repl:
+            printHex(asm.code[previousIndex:])
+            previousIndex = len(asm.code)
+else:
+    for line in sys.stdin:
+        lexed = lexAsm(line)
+        instrs = parseAllInstructions(TokenStream(lexed))
+        for item in instrs:
+            asm.process(item)
     
-print("")
+if sys.stdin.isatty():
+    print("")
 if jit:
     virtBuf = libjit.VirtualBuffer.Create(asm.index)
     asm.baseOffset = virtBuf.Address
