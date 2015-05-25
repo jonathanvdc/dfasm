@@ -58,7 +58,8 @@ asmRegexes = {
     "dot"                       :   ".",
     "colon"                     :   ":",
     "semicolon"                 :   ";",
-    "dot"                       :   "."
+    "dot"                       :   ".",
+    "quote"                     :   '"',
 }
 
 # Compile regexes to automata.
@@ -112,4 +113,32 @@ def processComments(tokens):
             i += 1
     return results
 
-lexAsm = lambda text: processComments(lex(text, asmRegexes))
+def processStrings(tokens):
+    result = []
+    currentString = None
+    for t in tokens:
+        if t.type == "quote":
+            if currentString is None:
+                # Open a new string, and begin collecting tokens into it.
+                currentString = []
+            else:
+                # Close the string and push its ASCII values as comma-
+                # separated tokens: for example, `"abc"` will parse into the
+                # same list of tokens as `97,98,99`.
+                fullString = ''.join(currentString).decode('string_escape')
+                for i, c in enumerate(fullString):
+                    if i > 0:
+                        result.append(Token(',', 'comma'))
+                    result.append(Token(str(ord(c)), 'integer'))
+                currentString = None
+        elif currentString is not None:
+            currentString.append(t.contents)
+        else:
+            result.append(t)
+
+    return result
+
+process = lambda tokens: processComments(processStrings(tokens))
+
+lexAsm = lambda text: process(lex(text, asmRegexes))
+
