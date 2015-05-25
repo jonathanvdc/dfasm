@@ -250,17 +250,11 @@ class CastNode(object):
         self.ptr = ptr
         self.expr = expr
 
-    dataTypes = ["byte", "word", "dword"]
-
     @property
     def size(self):
-        if self.type.contents == "byte":
-            return size8
-        elif self.type.contents == "word":
-            return size16
-        elif self.type.contents == "dword":
-            return size32
-        else:
+        try:
+            return parseSize(self.type.contents)
+        except:
             raise Exception("Invalid data type '" + str(self.type) + " " + str(self.ptr) + "' in cast expression '" + str(self) + "'")
             
     def toOperand(self, asm):
@@ -358,6 +352,44 @@ class IntegerDataDirective(DirectiveNodeBase):
             if item.value < 0 or item.value > maxSize:
                 raise Exception("'." + str(self.typeToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
             asm.writeArgument(item.cast(self.size))
+
+class DataArrayDirective(DirectiveNodeBase):
+    def __init__(self, dotToken, typeToken, arrayToken, size, length, element):
+        self.dotToken = dotToken        
+        self.typeToken = typeToken
+        self.arrayToken = arrayToken
+        self.size = size
+        self.length = length
+        self.element = element
+
+    def headerStr(self):
+        return str(self.dotToken) + str(self.typeToken) + " " + str(self.arrayToken)
+
+    def __str__(self):
+        return self.headerStr() + " " + str(self.length) + " " + str(self.element)
+
+    def __repr__(self):
+        return "DataArrayDirective(%r, %r, %r, %r, %r, %r)" % (self.dotToken, self.typeToken, self.arrayToken, self.size, self.length, self.element)
+
+    def apply(self, asm):
+        elem = self.element.toOperand(asm)
+        arrLengthOp = self.length.toOperand(asm)
+        if not isinstance(elem, Instructions.ImmediateOperandBase):
+            raise Exception("'" + self.headerStr() + "' directive element must be an immediate operand.")
+        if not isinstance(arrLengthOp, Instructions.ImmediateOperandBase):
+            raise Exception("'" + self.headerStr() + "' directive array size must be immediate operands.")
+        arrLength = arrLengthOp.value
+        if arrLength < 0:
+            raise Exception("'" + self.headerStr() + "' directive array size must be greater than or equal to zero.")
+
+        maxSize = 2 ** (self.size.size * 8) - 1
+        if elem.value < 0 or elem.value > maxSize:
+            raise Exception("'" + self.headerStr() + "' directive element must be in the 0-" + str(maxSize) + " range.")
+
+        arrElem = elem.toUnsigned().cast(self.size)
+
+        for i in range(arrLength):
+            asm.writeArgument(arrElem)
 
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
@@ -503,15 +535,15 @@ def parseDirective(tokens, dot):
     elif dirName.contents == "extern":
         symName = tokens.nextNoTrivia()
         return ExternDirective(dot, dirName, symName)
-    elif dirName.contents == "byte":
-        args = parseArgumentList(tokens)
-        return IntegerDataDirective(dot, dirName, size8, args)
-    elif dirName.contents == "short" or dirName.contents == "word":
-        args = parseArgumentList(tokens)
-        return IntegerDataDirective(dot, dirName, size16, args)
-    elif dirName.contents == "int" or dirName.contents == "dword":
-        args = parseArgumentList(tokens)
-        return IntegerDataDirective(dot, dirName, size32, args)
+    elif isSize(dirName.contents):
+        if tokens.peekNoTrivia().contents == "array":
+            arrTok = tokens.nextNoTrivia()
+            length = parseArgument(tokens)
+            elem = parseArgument(tokens)
+            return DataArrayDirective(dot, dirName, arrTok, parseSize(dirName.contents), length, elem)
+        else:
+            args = parseArgumentList(tokens)
+            return IntegerDataDirective(dot, dirName, parseSize(dirName.contents), args)
     else:
         raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     

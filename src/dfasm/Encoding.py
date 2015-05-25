@@ -46,3 +46,20 @@ size0 = OperandSize(0, lambda x: []) # Represents zero, which can usually be omi
 size8 = OperandSize(1, to8)
 size16 = OperandSize(2, to16le)
 size32 = OperandSize(4, to32le)
+
+dataTypes = { 
+    "byte"    : size8, 
+    "size8"   : size8,
+    "word"    : size16, 
+    "short"   : size16, 
+    "size16"  : size16,
+    "dword"   : size32,
+    "int"     : size32,
+    "size32"  : size32
+}
+
+def isSize(val):
+    return val in dataTypes
+
+def parseSize(val):
+    return dataTypes[val]
