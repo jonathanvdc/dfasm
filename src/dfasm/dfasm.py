@@ -16,7 +16,7 @@ from Parser import *
 debug = False
 jit = False
 repl = False
-output = "com"
+output = "coff"
 
 def printDebug(value):
     if debug:
