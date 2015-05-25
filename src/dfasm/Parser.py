@@ -516,7 +516,7 @@ def parsePrimary(tokens):
         return parseParentheses(tokens)
     elif peek.type == "lbracket":
         return parseMemory(tokens)
-    elif peek.type == "identifier" and peek.contents in CastNode.dataTypes:
+    elif peek.type == "identifier" and isSize(peek.contents):
         return parseCast(tokens)
     else:
         return parseLiteral(tokens)
