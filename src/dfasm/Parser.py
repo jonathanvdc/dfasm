@@ -337,26 +337,26 @@ class ExternDirective(DirectiveNodeBase):
         asm.defineSymbol(Symbols.ExternalSymbol(self.name.contents))
 
 class IntegerDataDirective(DirectiveNodeBase):
-    def __init__(self, dotToken, typeTokenToken, size, dataList):
+    def __init__(self, dotToken, typeToken, size, dataList):
         self.dotToken = dotToken
-        self.typeTokenToken = typeTokenToken
+        self.typeToken = typeToken
         self.size = size
         self.dataList = dataList
 
     def __str__(self):
-        return str(self.dotToken) + str(self.typeTokenToken) + " " + str(self.dataList)
+        return str(self.dotToken) + str(self.typeToken) + " " + str(self.dataList)
 
     def __repr__(self):
-        return "IntegerDataDirective(%r, %r, %r, %r)" % (self.dotToken, self.typeTokenToken, self.size, self.dataList)
+        return "IntegerDataDirective(%r, %r, %r, %r)" % (self.dotToken, self.typeToken, self.size, self.dataList)
 
     def apply(self, asm):
         for item in self.dataList.toOperands(asm):
             if not isinstance(item, Instructions.ImmediateOperandBase):
-                raise Exception("'." + str(self.typeTokenToken) + "' directive arguments must be immediate operands.")
+                raise Exception("'." + str(self.typeToken) + "' directive arguments must be immediate operands.")
             val = item.toUnsigned()
             maxSize = 2 ** (self.size.size * 8) - 1
             if item.value < 0 or item.value > maxSize:
-                raise Exception("'." + str(self.typeTokenToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
+                raise Exception("'." + str(self.typeToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
             asm.writeArgument(item.cast(self.size))
 
 def parseArgument(tokens):
