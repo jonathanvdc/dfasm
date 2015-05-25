@@ -195,9 +195,9 @@ def writeShiftInstruction(name, extension, asm, args):
     modRM = createModRM(memArg.addressingMode, extension, memArg.operandIndex)
 
     if isinstance(shiftArg, Instructions.ImmediateOperandBase):
-        if immArg.operandSize > size8:
+        if shiftArg.operandSize > size8:
             raise Exception("The immediate argument to a shift instruction cannot be larger than a byte.")
-        v = immArg.value & 31
+        v = shiftArg.value & 31
         if v == 1:
             asm.write([0xD1 if wordReg else 0xD0, modRM])
         else:
