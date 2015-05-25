@@ -16,7 +16,7 @@ from Parser import *
 debug = False
 jit = False
 repl = False
-output = True
+output = "com"
 
 def printDebug(value):
     if debug:
@@ -120,9 +120,15 @@ if jit:
 elif repl:
     asm.patchLabels()
     printHex(asm.code)
-elif output:
+elif output == "coff":
     asm.baseOffset = 0
     asm.relocateAbsolutes = False
     asm.patchLabels()
     coffFile = createObjectFile(asm, True)
     libcoff.CoffWriter.WriteToFile("a.o", coffFile)
+elif output == "com":
+    asm.baseOffset = 0x100
+    asm.patchLabels()
+    target = System.IO.FileStream("a.com", System.IO.FileMode.Create, System.IO.FileAccess.Write)
+    target.Write(System.Array[System.Byte](asm.code), 0, len(asm.code))
+    target.Dispose()
