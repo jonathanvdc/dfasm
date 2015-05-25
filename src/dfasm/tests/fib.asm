@@ -3,77 +3,59 @@
 .extern ExitProcess
 
 main:
-    ; eax = penultimate Fibonacci number
-    ; ebx = ultimate Fibonacci number
-
-    xor eax, eax ; print "0, "
+    xor edx, edx        ; print "0, "
     call printInt
     call printDelimiter
 
-    mov eax, 1 ; print "1"
+    mov edx, 1          ; print "1"
     call printInt
 
-    xor eax, eax ; Setup eax, ebx
-    mov ebx, 1
+    xor eax, eax        ; eax = penultimate Fibonacci number, so eax = 0 now
+    mov edx, 1          ; edx = ultimate Fibonacci number, so edx = 1 now
 
 loop:
-    push ebx ; Keep ebx, eax safe on the stack
+    push edx            ; Keep edx, eax safe on the stack
     push eax
 
     call printDelimiter ; Prints a delimiter (", ")
 
-    pop eax ; Restore eax, ebx
-    pop ebx
+    pop eax             ; Restore eax, edx
+    pop edx
 
-    add  eax, ebx ; Compute next Fibonacci number
+    push edx
+    add  edx, eax       ; Compute next Fibonacci number
+    push edx            ; Keep edx, eax safe on the stack
 
-    push ebx ; Keep ebx, eax safe on the stack
-    push eax
+    call printInt       ; print a Fibonacci number
 
-    call printInt ; print a Fibonacci number
-
-    pop ebx ; Restore & swap ebx, eax
+    pop edx             ; Restore & swap edx, eax
     pop eax
 
-    cmp ebx, 1836311903
+    cmp edx, 1836311903
     jl loop
 
-    mov ecx, 0
+    mov ecx, 0          ; Kill our process now, and report success.
     call ExitProcess
+    ret                 ; Return, even though we don't *really* have to.
 
-    ret
+printInt:               ; Prints the integer in edx
+    mov ecx, msg        ; Windows x64 calling convention dictates that the first argument is passed
+    jmp callprintf      ; through ecx.
 
-printInt: ; Prints a single integer
-    ; Pass the integer argument through eax
-    mov edx, eax
-
-    ; Windows x64 calling convention dictates that the first argument is passed
-    ; through ecx.
-    mov ecx, msg
-
-    jmp callprintf
-
-printDelimiter: ; Prints a delimiter (", ")
+printDelimiter:         ; Prints a delimiter (", ")
     mov ecx, delim
     jmp callprintf
 
-callprintf:
-    ; printf has varargs. Does eax still contain the number of stack varargs in the
-    ; Windows x64 calling convention?
-    xor eax, eax
+callprintf:             ; Calls printf
+    xor eax, eax        ; printf has varargs. Does eax still contain the number of stack varargs in the
+                        ; Windows x64 calling convention?
 
-    ; Allocate 32 bytes of shadow space for printf
-    sub esp, 32
-    
-    call printf
+    sub esp, 32         ; Allocate 32 bytes of shadow space for printf
 
-    ; Deallocate shadow space for printf
-    add esp, 32
+    call printf         ; Call printf
 
-    ret ; Return
+    add esp, 32         ; Deallocate shadow space for printf
+    ret                 ; Return
 
-msg:
-    .byte "%d", 0
-
-delim:
-    .byte ", ", 0
+msg: .byte "%d", 0
+delim: .byte ", ", 0
