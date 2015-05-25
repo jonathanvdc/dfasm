@@ -10,14 +10,11 @@ main:
     call printInt
     call printDelimiter
 
-    mov eax, 1 ; print "1, "
+    mov eax, 1 ; print "1"
     call printInt
-    call printDelimiter
 
     xor eax, eax ; Setup eax, ebx
     mov ebx, 1
-
-    jmp loopBody
 
 loop:
     push ebx ; Keep ebx, eax safe on the stack
@@ -28,7 +25,6 @@ loop:
     pop eax ; Restore eax, ebx
     pop ebx
 
-loopBody:
     add  eax, ebx ; Compute next Fibonacci number
 
     push ebx ; Keep ebx, eax safe on the stack
@@ -57,11 +53,8 @@ printInt: ; Prints a single integer
 
     jmp callprintf
 
-printDelimiter: ; Prints a delimiter
-    ; Windows x64 calling convention dictates that the first argument is passed
-    ; through ecx.
+printDelimiter: ; Prints a delimiter (", ")
     mov ecx, delim
-
     jmp callprintf
 
 callprintf:
@@ -71,8 +64,7 @@ callprintf:
 
     ; Allocate 32 bytes of shadow space for printf
     sub esp, 32
-
-    ; printf(", ");
+    
     call printf
 
     ; Deallocate shadow space for printf
@@ -81,9 +73,7 @@ callprintf:
     ret ; Return
 
 msg:
-    .byte "%d"
-    .byte 0
+    .byte "%d", 0
 
 delim:
-    .byte ", "
-    .byte 0
+    .byte ", ", 0
