@@ -55,26 +55,16 @@ printInt: ; Prints a single integer
     ; through ecx.
     mov ecx, msg
 
-    ; printf has varargs. Does eax still contain the number of stack varargs in the
-    ; Windows x64 calling convention?
-    xor eax, eax
-
-    ; Allocate 32 bytes of shadow space for printf
-    sub esp, 32
-
-    ; printf("%d");
-    call printf
-
-    ; Deallocate shadow space for printf
-    add esp, 32
-
-    ret ; Return
+    jmp callprintf
 
 printDelimiter: ; Prints a delimiter
     ; Windows x64 calling convention dictates that the first argument is passed
     ; through ecx.
     mov ecx, delim
 
+    jmp callprintf
+
+callprintf:
     ; printf has varargs. Does eax still contain the number of stack varargs in the
     ; Windows x64 calling convention?
     xor eax, eax
