@@ -186,6 +186,48 @@ def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstruc
     else:
         registerInstructionBuilder(asm, args)
 
+def writeShiftInstruction(name, extension, asm, args):
+    if len(args) != 2:
+        raise Exception("'%s' takes precisely two operands." % name)
+
+    memArg, shiftArg = args
+    wordReg = memArg.operandSize > size8
+    modRM = createModRM(memArg.addressingMode, extension, memArg.operandIndex)
+
+    if isinstance(shiftArg, Instructions.ImmediateOperandBase):
+        if immArg.operandSize > size8:
+            raise Exception("The immediate argument to a shift instruction cannot be larger than a byte.")
+        v = immArg.value & 31
+        if v == 1:
+            asm.write([0xD1 if wordReg else 0xD0, modRM])
+        else:
+            asm.write([0xC1 if wordReg else 0xC0, modRM, v])
+    elif shiftArg is registers["cl"]:
+        asm.write([0xD3 if wordReg else 0xD2, modRM])
+    else:
+        raise Exception("The second argument to a shift instruction must be an "
+                        "immediate byte or the register CL.")
+    asm.writeArgument(memArg)
+
+def writeCallInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'call' takes precisely one immediate operand.")
+    asm.write([0xe8])
+    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
+    
+def writeJumpInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise Exception("'jmp' takes precisely one immediate operand.")
+
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
+
+    if relOp.operandSize == size8:
+        asm.write([0xeb])
+        asm.writeArgument(relOp)
+    else:
+        asm.write([0xe9])
+        asm.writeArgument(relOp)
+
 def definePrefixedInstruction(prefix, instructionBuilder):
     return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
 
@@ -229,24 +271,8 @@ def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, rever
 def defineConditionalJumpInstruction(name, conditionOpCode):
     return lambda asm, args: writeConditionalJumpInstruction(asm, args, name, conditionOpCode)
 
-def writeCallInstruction(asm, args): # Sieberts code
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'call' takes precisely one immediate operand.")
-    asm.write([0xe8])
-    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
-    
-def writeJumpInstruction(asm, args): # tevens
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'jmp' takes precisely one immediate operand.")
-
-    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
-
-    if relOp.operandSize == size8:
-        asm.write([0xeb])
-        asm.writeArgument(relOp)
-    else:
-        asm.write([0xe9])
-        asm.writeArgument(relOp)
+def defineShiftInstruction(name, extension):
+    return lambda asm, args: writeShiftInstruction(name, extension, asm, args)
 
 addressingModeEncodings = {
     "register" : 3,
@@ -336,8 +362,12 @@ instructionBuilders = {
     "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
     "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
-	"call"	: writeCallInstruction,
-	"jmp"	: writeJumpInstruction,
+    "sal"   : defineShiftInstruction("sal", 4),
+    "sar"   : defineShiftInstruction("sar", 7),
+    "shl"   : defineShiftInstruction("shl", 4),
+    "shr"   : defineShiftInstruction("shr", 5),
+    "call"  : writeCallInstruction,
+    "jmp"   : writeJumpInstruction,
     # Lots of these conditional jump mnemonics are synonyms.
     "ja"    : defineConditionalJumpInstruction("ja", 0x7),    # Jump if above (CF == 0 && ZF == 0)
     "jae"   : defineConditionalJumpInstruction("jae", 0x3),   # Jump if above or equal (CF == 0)
