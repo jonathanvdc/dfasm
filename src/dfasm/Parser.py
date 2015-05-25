@@ -336,6 +336,27 @@ class ExternDirective(DirectiveNodeBase):
     def apply(self, asm):
         asm.defineSymbol(Symbols.ExternalSymbol(self.name.contents))
 
+class ByteDataDirective(DirectiveNodeBase):
+    def __init__(self, dotToken, byteToken, dataList):
+        self.dotToken = dotToken
+        self.byteToken = byteToken
+        self.dataList = dataList
+
+    def __str__(self):
+        return str(self.dotToken) + str(self.byteToken) + " " + str(self.dataList)
+
+    def __repr__(self):
+        return "ByteDataDirective(%r, %r, %r)" % (self.dotToken, self.byteToken, self.dataList)
+
+    def apply(self, asm):
+        for item in self.dataList.toOperands(asm):
+            if not isinstance(item, Instructions.ImmediateOperandBase):
+                raise Exception("'.byte' directive arguments must be immediate operands.")
+            val = item.toUnsigned()
+            if item.operandSize > size8:
+                raise Exception("'.byte' directive arguments must be in the 0-255 range.")
+            asm.writeArgument(item.cast(size8))
+
 def parseArgument(tokens):
     """ Parse an argument to an instruction:
 
@@ -480,6 +501,9 @@ def parseDirective(tokens, dot):
     elif dirName.contents == "extern":
         symName = tokens.nextNoTrivia()
         return ExternDirective(dot, dirName, symName)
+    elif dirName.contents == "byte":
+        args = parseArgumentList(tokens)
+        return ByteDataDirective(dot, dirName, args)
     else:
         raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     

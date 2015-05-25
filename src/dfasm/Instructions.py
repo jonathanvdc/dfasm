@@ -155,16 +155,16 @@ class SymbolOperand(Operand):
         """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.symbol.isDefined and (asm.baseOffset is not None or self.isRelative)
 
-    def getSymbolOffset(self, baseAddress):
+    def getSymbolOffset(self, asm):
         """ Gets the symbol's offset, based on the given base address. """
-        if self.symbol.isExternal:
+        if self.symbol.isExternal or (self.isAbsolute and not asm.relocateAbsolutes):
             return 0
-        return self.symbol.offset + (-self.relativeOffset if self.isRelative else baseAddress)
+        return self.symbol.offset + (-self.relativeOffset if self.isRelative else asm.baseOffset)
 
     def getData(self, asm):
         if self.isAbsolute or self.symbol.isExternal:
             asm.relocations.append(self)
-        return self.operandSize.encoding(self.getSymbolOffset(asm.baseOffset))
+        return self.operandSize.encoding(self.getSymbolOffset(asm))
 
     def makeRelative(self, relativeOffset):
         """ Turns this operand into a relative operand. """

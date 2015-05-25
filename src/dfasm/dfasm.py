@@ -115,6 +115,7 @@ elif repl:
     printHex(asm.code)
 elif output:
     asm.baseOffset = 0
+    asm.relocateAbsolutes = False
     asm.patchLabels()
     coffFile = createObjectFile(asm, True)
     libcoff.CoffWriter.WriteToFile("a.o", coffFile)

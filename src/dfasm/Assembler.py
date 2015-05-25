@@ -338,11 +338,15 @@ instructionBuilders = {
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
 
-    def __init__(self, baseOffset = None):
+    def __init__(self, baseOffset = None, relocateAbsolutes = True):
         # A list of byte values representing the bytecode.
         self.code = []
         self.baseOffset = baseOffset # The base offset is absolutely necessary for absolute things,
                                      # but we may choose to provide it later on.
+
+        self.relocateAbsolutes = relocateAbsolutes # This boolean value tells symbol operands whether they should try
+                                                   # to fix up absolute offsets themselves, or report a pseudo-offset of 0,
+                                                   # making it the linker's problem.
 
         # A dictionary of symbols (these include labels).
         self.symbols = {}
