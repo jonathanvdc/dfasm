@@ -151,6 +151,7 @@ elif output[-2:] == ".o":
 elif output[-4:] == ".com":
     asm.baseOffset = 0x100
     asm.patchLabels()
+    offset = asm.getSymbol("main").offset if (asm.hasSymbol("main") and asm.getSymbol("main").isPublic) else 0
     target = System.IO.FileStream(output, System.IO.FileMode.Create, System.IO.FileAccess.Write)
-    target.Write(System.Array[System.Byte](asm.code), 0, len(asm.code))
+    target.Write(System.Array[System.Byte](asm.code), offset, len(asm.code))
     target.Dispose()
