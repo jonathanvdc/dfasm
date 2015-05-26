@@ -65,6 +65,9 @@ def createObjectFile(asm, is64Bit):
             
     return libcoff.ObjectFile(arch, sections, symbols, libcoff.CoffHeaderFlags())
 
+def getEntryPointOffset(asm):
+    return asm.getSymbol("main").offset if (asm.hasSymbol("main") and asm.getSymbol("main").isPublic) else 0
+
 debug = False
 jit = False
 repl = True
@@ -136,7 +139,7 @@ if jit:
     asm.baseOffset = virtBuf.Address
     asm.patchLabels()
     virtBuf.Write(System.Array[System.Byte](asm.code))
-    func = libjit.JitFunction(virtBuf)
+    func = libjit.JitFunction(virtBuf, getEntryPointOffset(asm))
     print(func.Invoke[int]())
     func.Dispose()
 elif repl:
@@ -151,7 +154,7 @@ elif output[-2:] == ".o":
 elif output[-4:] == ".com":
     asm.baseOffset = 0x100
     asm.patchLabels()
-    offset = asm.getSymbol("main").offset if (asm.hasSymbol("main") and asm.getSymbol("main").isPublic) else 0
+    offset = getEntryPointOffset(asm)
     target = System.IO.FileStream(output, System.IO.FileMode.Create, System.IO.FileAccess.Write)
     target.Write(System.Array[System.Byte](asm.code), offset, len(asm.code))
     target.Dispose()
