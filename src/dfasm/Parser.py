@@ -532,7 +532,7 @@ def parseDirective(tokens, dot):
     if dirName.contents == "globl" or dirName.contents == "global":
         symName = tokens.nextNoTrivia()
         return GlobalDirective(dot, dirName, symName)
-    elif dirName.contents == "extern":
+    elif dirName.contents == "extrn" or dirName.contents == "extern":
         symName = tokens.nextNoTrivia()
         return ExternDirective(dot, dirName, symName)
     elif isSize(dirName.contents):
