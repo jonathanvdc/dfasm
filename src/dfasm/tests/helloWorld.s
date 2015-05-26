@@ -30,6 +30,6 @@ main:
     ret
 
 msg:
-    .ascii "Hello, world!"
+    .byte "Hello, world!"
     .byte 10
     .byte 0

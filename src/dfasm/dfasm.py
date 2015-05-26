@@ -15,8 +15,8 @@ from Parser import *
 
 debug = False
 jit = False
-repl = False
-output = "coff"
+repl = True
+output = None
 
 def printDebug(value):
     if debug:

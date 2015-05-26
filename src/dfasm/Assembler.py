@@ -74,6 +74,42 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
     asm.writeArgument(memArg)
     asm.writeArgument(immArg)
 
+def writeThreeOpImmediateInstruction(name, opCode, asm, args):
+    if len(args) != 2 and len(args) != 3:
+        raise Exception("'" + name + "' takes either two or three arguments.")
+
+    if len(args) == 2:
+        args = [ args[0], args[0], args[1] ] # transform `imul eax,      10`
+                                             # into      `imul eax, eax, 10`
+
+    regArg, memArg, immArg = args[0], args[1], args[2]
+
+    if regArg.addressingMode != "register":
+        raise Exception("'" + name + "' instruction must have a register operand as its first argument.")
+
+    if regArg.operandSize != memArg.operandSize:
+        if memArg.addressingMode == "register":
+            raise Exception("Register size mismatch ('" + str(regArg) + "' and '" + str(memArg) + "') in '" + name + "' instruction.")
+        else:
+            memArg = memArg.cast(regArg.operandSize)
+
+    wordReg = memArg.operandSize > size8
+
+    if immArg.operandSize == size0:
+        immArg = immArg.cast(size8)
+    elif immArg.operandSize != size8:
+        if not wordReg:
+            raise Exception("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(regArg) + "'")
+        immArg = immArg.cast(memArg.operandSize)
+        
+    shortImm = immArg.operandSize != memArg.operandSize
+
+    opcodeByte = opCode << 2 | (int(shortImm) & 0x01) << 1 | int(wordReg) & 0x01
+    operandsByte = createModRM(memArg.addressingMode, regArg.operandIndex, memArg.operandIndex)
+    asm.write([opcodeByte, operandsByte])
+    asm.writeArgument(memArg)
+    asm.writeArgument(immArg)
+
 def writeMovImmediateInstruction(asm, args):
     if len(args) != 2:
         raise Exception("'mov' takes precisely two arguments.")
@@ -249,6 +285,9 @@ def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
 def defineBinaryImmediateInstruction(name, opCode):
     return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
 
+def defineThreeOpImmediateInstruction(name, opCode):
+    return lambda asm, args: writeThreeOpImmediateInstruction(name, opCode, asm, args)
+
 def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
     return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args)
 
@@ -257,6 +296,9 @@ def defineReversedArgumentsInstruction(instructionBuilder):
 
 def definePushPopInstruction(name, regOpCode, memOpCode, memReg):
     return lambda asm, args: writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args)
+
+def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
+    return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
 
 def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
     if opCode is None:
@@ -360,7 +402,11 @@ instructionBuilders = {
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
     "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True), writeTestImmediateInstruction),
     "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
-    "imul"  : defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), # imul and idiv are *not* working properly!
+    "imul"  : defineAmbiguousArgumentCountInstruction({
+                1 : defineUnaryInstruction("imul", 0xF6, 5),
+                2 : defineAmbiguousInstruction(defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
+                3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2)
+              }),
     "idiv"  : defineBinaryInstruction("idiv", 0x3d),
     "sal"   : defineShiftInstruction("sal", 4),
     "sar"   : defineShiftInstruction("sar", 7),
