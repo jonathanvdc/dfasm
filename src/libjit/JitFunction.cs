@@ -12,9 +12,23 @@ namespace libjit
         public JitFunction(VirtualBuffer Buffer)
         {
             this.Buffer = Buffer;
+            this.EntryPointOffset = 0;
+        }
+        public JitFunction(VirtualBuffer Buffer, IntPtr EntryPoint)
+        {
+            this.Buffer = Buffer;
+            this.EntryPointOffset = (int)EntryPoint - (int)Buffer.Pointer;
+        }
+        public JitFunction(VirtualBuffer Buffer, int EntryPointOffset)
+        {
+            this.Buffer = Buffer;
+            this.EntryPointOffset = EntryPointOffset;
         }
 
         public VirtualBuffer Buffer { get; private set; }
+        public int EntryPointOffset { get; private set; }
+
+        public IntPtr EntryPoint { get { return Buffer.Pointer + EntryPointOffset; } }
 
         public Delegate ToDelegate(Type DelegateType)
         {
@@ -41,6 +55,10 @@ namespace libjit
         public static JitFunction Create(byte[] Data)
         {
             return new JitFunction(VirtualBuffer.Create(Data));
+        }
+        public static JitFunction Create(byte[] Data, int EntryPointOffset)
+        {
+            return new JitFunction(VirtualBuffer.Create(Data), EntryPointOffset);
         }
     }
 }
