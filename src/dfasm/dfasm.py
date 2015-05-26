@@ -13,11 +13,6 @@ import libcoff
 from Lexer import *
 from Parser import *
 
-debug = False
-jit = False
-repl = True
-output = None
-
 def printDebug(value):
     if debug:
         print(value)
@@ -69,6 +64,29 @@ def createObjectFile(asm, is64Bit):
                 codeSection.Relocations.Add(libcoff.Relocation(reloc.offset, newSymbol, getCoffRelocationType(is64Bit, reloc)))
             
     return libcoff.ObjectFile(arch, sections, symbols, libcoff.CoffHeaderFlags())
+
+debug = False
+jit = False
+repl = True
+output = None
+
+for argument in sys.argv[1:]:
+	if argument == "-d":
+		debug = True
+	elif argument == "-jit" or argument == "-j":
+		jit = True
+		repl = False
+	elif argument == "-repl" or argument == "-r":
+		jit = False
+		repl = True
+	elif argument == "-coff":
+		jit = False
+		repl = False
+		output = "coff"
+	elif argument == "-com":
+		jit = False
+		repl = False
+		output = "com"
 
 asm = Assembler.Assembler()
 
