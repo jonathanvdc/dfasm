@@ -82,11 +82,16 @@ for argument in sys.argv[1:]:
 	elif argument == "-coff":
 		jit = False
 		repl = False
-		output = "coff"
+		output = "a.o"
 	elif argument == "-com":
 		jit = False
 		repl = False
-		output = "com"
+		output = "a.com"
+	elif argument[0:3] == "-o:":
+		print(argument[3:])
+		jit = False
+		repl = False
+		output = argument[3:]
 
 asm = Assembler.Assembler()
 
@@ -138,15 +143,15 @@ if jit:
 elif repl:
     asm.patchLabels()
     printHex(asm.code)
-elif output == "coff":
+elif output[-2:] == ".o":
     asm.baseOffset = 0
     asm.relocateAbsolutes = False
     asm.patchLabels()
     coffFile = createObjectFile(asm, True)
-    libcoff.CoffWriter.WriteToFile("a.o", coffFile)
-elif output == "com":
+    libcoff.CoffWriter.WriteToFile(output, coffFile)
+elif output[-4:] == ".com":
     asm.baseOffset = 0x100
     asm.patchLabels()
-    target = System.IO.FileStream("a.com", System.IO.FileMode.Create, System.IO.FileAccess.Write)
+    target = System.IO.FileStream(output, System.IO.FileMode.Create, System.IO.FileAccess.Write)
     target.Write(System.Array[System.Byte](asm.code), 0, len(asm.code))
     target.Dispose()
