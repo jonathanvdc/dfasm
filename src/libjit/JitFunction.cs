@@ -32,7 +32,7 @@ namespace libjit
 
         public Delegate ToDelegate(Type DelegateType)
         {
-            return Marshal.GetDelegateForFunctionPointer(Buffer.Pointer, DelegateType);
+            return Marshal.GetDelegateForFunctionPointer(EntryPoint, DelegateType);
         }
 
         public TDelegate ToDelegate<TDelegate>()
