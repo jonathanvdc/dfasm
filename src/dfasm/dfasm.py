@@ -88,7 +88,6 @@ for argument in sys.argv[1:]:
 		repl = False
 		output = "a.com"
 	elif argument[0:3] == "-o:":
-		print(argument[3:])
 		jit = False
 		repl = False
 		output = argument[3:]
