@@ -402,12 +402,15 @@ instructionBuilders = {
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
     "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True), writeTestImmediateInstruction),
     "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
+    "mul"   : defineUnaryInstruction("mul", 0xF6, 4),             # Note: Our mul syntax is *not* `mul eax, ecx`, but `mul ecx`, because things like `mul ebx, ecx` don't exist.
+                                                                  #       The same goes for div and idiv.
     "imul"  : defineAmbiguousArgumentCountInstruction({
                 1 : defineUnaryInstruction("imul", 0xF6, 5),
                 2 : defineAmbiguousInstruction(defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
                 3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2)
               }),
-    "idiv"  : defineBinaryInstruction("idiv", 0x3d),
+    "div"   : defineUnaryInstruction("div", 0xF6, 6),
+    "idiv"  : defineUnaryInstruction("idiv", 0xF6, 7),
     "sal"   : defineShiftInstruction("sal", 4),
     "sar"   : defineShiftInstruction("sar", 7),
     "shl"   : defineShiftInstruction("shl", 4),
