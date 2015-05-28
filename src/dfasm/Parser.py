@@ -479,7 +479,10 @@ def parseCast(tokens):
             ^~~~~~~~~~~~~~~
     """
     typeToken = tokens.nextNoTrivia()
-    ptrToken = tokens.nextNoTrivia()
+    if tokens.peekNoTrivia().contents == "ptr":
+        ptrToken = tokens.nextNoTrivia()
+    else:
+        ptrToken = Lexer.Token("ptr", "identifier")
     return CastNode(typeToken, ptrToken, parsePrimary(tokens))
 
 def parseLiteral(tokens):
