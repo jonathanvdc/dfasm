@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libjit", "..\libjit\libjit.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libcoff", "..\libcoff\libcoff.csproj", "{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "libdiagnostics", "..\libdiagnostics\libdiagnostics.csproj", "{1BE2284A-A48D-440D-BE20-B67A1C290E6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6C02A4E-6CDF-4E94-B238-549CDC5CCE9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1BE2284A-A48D-440D-BE20-B67A1C290E6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1BE2284A-A48D-440D-BE20-B67A1C290E6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1BE2284A-A48D-440D-BE20-B67A1C290E6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1BE2284A-A48D-440D-BE20-B67A1C290E6C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
