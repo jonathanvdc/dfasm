@@ -166,10 +166,9 @@ class MemoryNode(object):
         self.address = address
         self.rbracket = rbracket
 
-    def getDisplacement(self, asm):
-        """ Given an Assembler instance, find the total displacement
-        of non-index operands represented by this node's address. """
-        operand = self.address.toOperand(asm)
+    def getDisplacement(self, operand):
+        """ Find the total displacement  of non-index operands represented
+        by this node's address. """
         if isinstance(operand, Instructions.ImmediateOperand):
             return operand.value
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
@@ -184,6 +183,7 @@ class MemoryNode(object):
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
         left-shift amount (1, 2, 4, or 8). """
+        
         if isinstance(operand, Instructions.RegisterOperand):
             return [(operand.register, 0)]
         elif isinstance(operand, Instructions.BinaryOperand):
@@ -222,23 +222,27 @@ class MemoryNode(object):
         return []
 
     def toOperand(self, asm):
-        disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(asm))
-        indices = self.getIndexOperands(addrOp)
-        baseRegisters = map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
-        indices = filter(lambda x: x[1] != 0, indices)
+        operand = self.address.toOperand(asm)
+        disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(operand))
+        indices = self.getIndexOperands(operand)
+        baseRegisters  = [r      for (r, s) in indices if s == 0]
+        indexRegisters = [(r, s) for (r, s) in indices if s != 0]
 
-        if len(indices) == 0 and len(baseRegisters) == 1: # Simple
-            return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
+        if not indexRegisters and len(baseRegisters) == 1: # Simple
+            [r] = baseRegisters
+            return Instructions.MemoryOperand(r, disp, size8)
         elif len(baseRegisters) == 2: # Simple SIB
-            return Instructions.SIBMemoryOperand(baseRegisters[0], baseRegisters[1], 0, disp, size8)
-        elif len(baseRegisters) == 1 and len(indices) == 1: # Typical SIB
-            return Instructions.SIBMemoryOperand(baseRegisters[0], indices[0][0], indices[0][1], disp, size8)
-        elif len(baseRegisters) > 2: # Whaaaat?
-            raise ValueError("More than two base registers are not supported. ('" + str(self) + "')") 
+            [rB, rI] = baseRegisters
+            return Instructions.SIBMemoryOperand(rB, rI, 0, disp, size8)
+        elif len(baseRegisters) == 1 and len(indexRegisters) == 1: # Typical SIB
+            [rB] = baseRegisters
+            [(rI, sI)] = indexRegisters
+            return Instructions.SIBMemoryOperand(rB, rI, sI, disp, size8)
         elif len(indices) > 2:
-            raise ValueError("More than two index registers are not supported. ('" + str(self) + "')") 
+            raise ValueError("A memory operand contains at most two registers.")
         else:
-            raise ValueError("Bad memory operand ('" + str(self) + "')")
+            # XXX: is mov eax, [ebx * 4] (i.e. only an index register, no base) valid?
+            raise ValueError("Bad memory operand.")
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)
