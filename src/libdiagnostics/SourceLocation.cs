@@ -99,5 +99,14 @@ namespace libdiagnostics
         {
             return new SourceLocation(doc, doc.Source.Length - 1, 1);
         }
+
+        public SourceLocation Between(SourceLocation other)
+        {
+            int left = Math.Min(this.Position, other.Position);
+            int right = Math.Max(this.Position  + this.Length,
+                                 other.Position + other.Length);
+            int length = right - left;
+            return new SourceLocation(this.Document, left, length);
+        }
     }
 }

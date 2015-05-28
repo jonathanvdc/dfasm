@@ -49,6 +49,7 @@ class TokenStream(object):
         return Lexer.Token("", "end-of-stream", location)
 
     def remainingTokens(self):
+        """ Return the list of remaining tokens in the stream. """
         return self.tokens[self.index:]
 
     def peek(self):
@@ -119,11 +120,10 @@ class IdentifierNode(LiteralNode):
     def toOperand(self, asm):
         """ Converts the identifier node to an operand. """
         name = self.token.contents
-        if name in Instructions.registers: # Maybe we'll get lucky and encounter a register.
+        if name in Instructions.registers:  # Maybe we'll get lucky and encounter a register.
             return Instructions.RegisterOperand(Instructions.registers[name])
         else:
             return Instructions.LabelOperand(name, size32)
-
 
     def __repr__(self):
         return "IdentifierNode(%r)" % self.token
@@ -131,21 +131,28 @@ class IdentifierNode(LiteralNode):
 class BinaryNode(object):
     """ Defines a syntax node that captures a binary expression. """
     def __init__(self, left, op, right):
+        """ `left` and `right` are two child nodes representing the operands;
+        `op` is a single token representing the operator. """
         self.left = left
         self.op = op
         self.right = right
 
     def toOperand(self, asm):
-        """ Converts the binary node to an operand, trying to constant-fold in the process. """
+        """ Converts the binary node to an operand, trying to constant-fold in
+        the process. """
         lhs = self.left.toOperand(asm)
         rhs = self.right.toOperand(asm)
-        if isinstance(lhs, Instructions.ImmediateOperand) and isinstance(rhs, Instructions.ImmediateOperand):
-            return Instructions.ImmediateOperand.createSigned(operations[self.op.type](lhs.value, rhs.value))
+        isImmediate = lambda x: isinstance(x, Instructions.ImmediateOperand)
+        if isImmediate(lhs) and isImmediate(rhs):
+            # Simplify the expression by evaluating it.
+            result = operations[self.op.type](lhs.value, rhs.value)
+            return Instructions.ImmediateOperand.createSigned(result)
         else:
-            return Instructions.BinaryOperand(lhs, self.op.type, rhs) # Create a binary pseudo-operand (which MemoryNode can then examine)
+            # Create a binary pseudo-operand (which MemoryNode can then examine).
+            return Instructions.BinaryOperand(lhs, self.op.type, rhs)
 
     def __str__(self):
-        return str(self.left) + " " + str(self.op) + " " + str(self.right)
+        return "%s %s %s" % (self.left, self.op, self.right)
 
     def __repr__(self):
         return "BinaryNode(%r, %r, %r)" % (self.left, self.op, self.right)
@@ -153,42 +160,69 @@ class BinaryNode(object):
 class MemoryNode(object):
     """ Defines a syntax node that refers to a memory location. """
     def __init__(self, lbracket, address, rbracket):
+        """ `lbracket` and `rbracket` are tokens of the respective type;
+        `address` is the syntax node representing a location in memory."""
         self.lbracket = lbracket
         self.address = address
         self.rbracket = rbracket
 
-    def getDisplacement(self, operand):
+    def getDisplacement(self, asm):
+        """ Given an Assembler instance, find the total displacement
+        of non-index operands represented by this node's address. """
+        operand = self.address.toOperand(asm)
         if isinstance(operand, Instructions.ImmediateOperand):
             return operand.value
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "plus":
             return self.getDisplacement(operand.left) + self.getDisplacement(operand.right)
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "minus":
             return self.getDisplacement(operand.left) - self.getDisplacement(operand.right)
-        else:
+        elif isinstance(operand, Instructions.RegisterOperand):
             return 0
+        else:
+            raise ValueError("Non-immediate SIB displacements are not supported.")
 
     def getIndexOperands(self, operand):
+        """ Return a list of tuples (r, s), where r is a register and s is the
+        left-shift amount (1, 2, 4, or 8). """
         if isinstance(operand, Instructions.RegisterOperand):
             return [(operand.register, 0)]
         elif isinstance(operand, Instructions.BinaryOperand):
-            if operand.op == "asterisk" or operand.op == "lshift":
-                if isinstance(operand.left, Instructions.RegisterOperand) and isinstance(operand.right, Instructions.ImmediateOperand):
-                    return [(operand.left.register, operand.right.value if operand.op == "lshift" else int(math.log(operand.right.value, 2)))]
-                elif isinstance(operand.right, Instructions.RegisterOperand) and isinstance(operand.left, Instructions.ImmediateOperand):
-                    return [(operand.right.register, operand.left.value if operand.op == "lshift" else int(math.log(operand.left.value, 2)))]
-                else:
-                    raise Exception("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+            if operand.op in ("asterisk", "lshift"):
+                left, right = operand.left, operand.right
+                if operand.op == "asterisk" and isinstance(right, Instructions.RegisterOperand):
+                    # Transform "4 * eax" into "eax * 4", first.
+                    left, right = right, left
+
+                # Disallow cases like "eax * ebx" and "2 << ebx".
+                if not isinstance(right, Instructions.ImmediateOperand):
+                    raise ValueError("'%s' is not allowed in a memory operand." % operand)
+                
+                # Then, calculate the shift amount for (eax << k) or (eax * k).
+                shift = right.value
+                if operand.op == "asterisk":
+                    try:
+                        factorToShift = {1: 0, 2: 1, 4: 2, 8: 3}
+                        shift = factorToShift[shift]
+                    except IndexError:
+                        raise ValueError("Valid multiplicands for memory operands are 1, 2, 4 and 8; got %d." % shift)
+                
+                if not 0 <= shift <= 3:
+                    raise ValueError("Valid shift amounts for memory operands are 0 through 3; got %d." % shift)
+                return [(left.register, shift)]
+                    
             elif operand.op == "plus":
                 return self.getIndexOperands(operand.left) + self.getIndexOperands(operand.right)
-            elif operand.op == "minus" and len(self.getIndexOperands(operand.right)) == 0:
-                return self.getIndexOperands(operand.left)
+            elif operand.op == "minus":
+                if self.getIndexOperands(operand.right):
+                    raise ValueError("Subtraction of memory index operands is not allowed.")
+                else:
+                    return self.getIndexOperands(operand.left)
             else:
-                raise Exception("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
+                raise ValueError("'%s' is not allowed in a memory operand." % operand)
         return []
 
     def toOperand(self, asm):
-        addrOp = self.address.toOperand(asm)
-        disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(addrOp))
+        disp = Instructions.ImmediateOperand.createSigned(self.getDisplacement(asm))
         indices = self.getIndexOperands(addrOp)
         baseRegisters = map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
         indices = filter(lambda x: x[1] != 0, indices)
