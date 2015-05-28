@@ -31,15 +31,22 @@ operations = {
 }
 
 class TokenStream(object):
-    """ Defines a token stream. """ 
+    """ Defines a token stream. Internally, this is a list of tokens, together
+    with an index to scroll through it, and some document/log objects that are
+    used to give useful diagnostics back to the user on parse failure. """
+
     def __init__(self, tokens, doc, log):
         self.tokens = tokens
-        self.doc = doc
         self.index = 0
+        self.doc = doc
         self.log = log
 
     def endOfStream(self):
-        return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
+        """ Return a token representing the end of the current stream -- this
+        is an instance method, since the location in the source code differs
+        across token streams. """
+        location = libdiagnostics.SourceLocation.End(self.doc)
+        return Lexer.Token("", "end-of-stream", location)
 
     def peek(self):
         """ Peeks a token from the token stream. """

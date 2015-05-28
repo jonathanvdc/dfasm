@@ -94,5 +94,10 @@ namespace libdiagnostics
 
             return new MarkupNode[] { preTextNode, highlightTextNode, postTextNode };
         }
+
+        public static SourceLocation End(SourceDocument doc)
+        {
+            return new SourceLocation(doc, doc.Source.Length - 1, 1);
+        }
     }
 }
