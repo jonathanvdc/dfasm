@@ -44,30 +44,55 @@ def getCoffRelocationType(is64Bit, reloc):
         return libcoff.RelocationType.AMD64_ADDR32 if is64Bit else libcoff.RelocationType.I386_DIR32
 
 def createObjectFile(asm, is64Bit):
+    
     align = libcoff.SectionHeaderFlags.Align16Bytes if is64Bit else SectionHeaderFlags.Align4Bytes
     arch = libcoff.MachineType.Amd64 if is64Bit else libcoff.MachineType.I386
 
+    # This section layout is copied from gcc, so it ought to work.
     code = System.Array[System.Byte](asm.code)
 
-    codeSection = libcoff.Section(".text", 0, libcoff.SectionHeaderFlags.MemExecute | libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.CntCode | align, code)    
-    dataSection = libcoff.Section(".data", 0, libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.MemWrite | libcoff.SectionHeaderFlags.CntInitializedData | align)
-    bssSection = libcoff.Section(".bss", 0, libcoff.SectionHeaderFlags.MemRead | libcoff.SectionHeaderFlags.MemWrite | libcoff.SectionHeaderFlags.CntUninitializedData | align)
+    codeSection = libcoff.Section(".text", 0, libcoff.SectionHeaderFlags.MemExecute
+                                            | libcoff.SectionHeaderFlags.MemRead
+                                            | libcoff.SectionHeaderFlags.CntCode
+                                            | align, code)    
+    dataSection = libcoff.Section(".data", 0, libcoff.SectionHeaderFlags.MemRead
+                                            | libcoff.SectionHeaderFlags.MemWrite
+                                            | libcoff.SectionHeaderFlags.CntInitializedData
+                                            | align)
+    bssSection = libcoff.Section(".bss", 0, libcoff.SectionHeaderFlags.MemRead
+                                          | libcoff.SectionHeaderFlags.MemWrite
+                                          | libcoff.SectionHeaderFlags.CntUninitializedData
+                                          | align)
 
     sections = System.Array[libcoff.Section]([codeSection, dataSection, bssSection])
 
+    # Collect all our used symbols to write them to the COFF file.
     symbols = System.Collections.Generic.List[libcoff.Symbol]()
 
-    symbols.Add(libcoff.Symbol(".file", libcoff.SymbolMode.Debug, 0, codeSection, libcoff.SymbolType(), libcoff.StorageClass.File, System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliaryFileName("fake")])))
+    # Define a "fake" file directive: this is a gcc hack.
+    auxSymbols = System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliaryFileName("fake")])
+    symbols.Add(libcoff.Symbol(".file", libcoff.SymbolMode.Debug, 0, codeSection,
+                               libcoff.SymbolType(), libcoff.StorageClass.File, auxSymbols))
+    
+    # Each section has its own entry in the symbol table.
     for i in range(len(sections)):
-        item = sections[i]
-        symbols.Add(libcoff.Symbol(item.Name, libcoff.SymbolMode.Normal, 0, item, libcoff.SymbolType(), libcoff.StorageClass.Static, System.Array[libcoff.IAuxiliarySymbol]([libcoff.AuxiliarySectionDefinition(item, i + 1)])))
+        section = sections[i]
+        sectDef = libcoff.AuxiliarySectionDefinition(section, i + 1)
+        auxSymbols = System.Array[libcoff.IAuxiliarySymbol]([sectDef])
+        symbols.Add(libcoff.Symbol(section.Name, libcoff.SymbolMode.Normal, 0, section,
+                                   libcoff.SymbolType(), libcoff.StorageClass.Static, auxSymbols))
 
+    # Finally, actually put the symbols from our code in the table.
     for sym in asm.symbols.values():
-        newSymbol = libcoff.Symbol(sym.name, sym.offset, codeSection if not sym.isExternal else None, getCoffStorageClass(sym))
+        sec = None if sym.isExternal else codeSection
+        newSymbol = libcoff.Symbol(sym.name, sym.offset, sec, getCoffStorageClass(sym))
         symbols.Add(newSymbol)
         for reloc in asm.relocations:
+            # Append all of the relevant relocations.
             if reloc.symbol == sym:
-                codeSection.Relocations.Add(libcoff.Relocation(reloc.offset, newSymbol, getCoffRelocationType(is64Bit, reloc)))
+                relocType = getCoffRelocationType(is64Bit, reloc)
+                relocObject = libcoff.Relocation(reloc.offset, newSymbol, relocType)
+                codeSection.Relocations.Add(relocObject)
             
     return libcoff.ObjectFile(arch, sections, symbols, libcoff.CoffHeaderFlags())
 
@@ -76,7 +101,7 @@ def getEntryPoint(asm):
 	
 def getEntryPointOffset(asm):
     return getEntryPoint(asm).offset if getEntryPoint(asm) != None else 0
-	
+
 debug = False
 jit = False
 repl = True
@@ -116,8 +141,8 @@ if sys.stdin.isatty():
     while sys.stdin:
         try:
             line = ""
-            while line == "" and sys.stdin:                
-                line = sys.stdin.readline().strip()
+            while line == "" or line.isspace():
+                line = sys.stdin.readline()
                 lineIndex += 1
         except KeyboardInterrupt:
             break
@@ -140,6 +165,7 @@ if sys.stdin.isatty():
         if repl:
             printHex(asm.code[previousIndex:])
             previousIndex = len(asm.code)
+    print()
 else:
     for line in sys.stdin:
         lineIndex += 1
@@ -148,9 +174,7 @@ else:
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
             asm.process(item)
-    
-if sys.stdin.isatty():
-    print("")
+
 if jit:
     virtBuf = libjit.VirtualBuffer.Create(asm.index)
     asm.baseOffset = virtBuf.Address
@@ -162,13 +186,13 @@ if jit:
 elif repl:
     asm.patchLabels()
     printHex(asm.code)
-elif output[-2:] == ".o":
+elif output.endswith(".o"):
     asm.baseOffset = 0
     asm.relocateAbsolutes = False
     asm.patchLabels()
     coffFile = createObjectFile(asm, True)
     libcoff.CoffWriter.WriteToFile(output, coffFile)
-elif output[-4:] == ".com":
+elif output.endswith(".com"):
     asm.baseOffset = 0x100
     asm.patchLabels()
     entryPoint = getEntryPoint(asm)
