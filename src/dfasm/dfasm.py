@@ -2,14 +2,16 @@ import clr
 clr.AddReference("Automata.dll")
 clr.AddReference("libjit.dll")
 clr.AddReference("libcoff.dll")
+clr.AddReference("libdiagnostics.dll")
 import sys
 
+import System
 import Automata
 import Instructions
 import Assembler
 import libjit
-import System
 import libcoff
+import libdiagnostics
 from Lexer import *
 from Parser import *
 
@@ -98,19 +100,23 @@ for argument in sys.argv[1:]:
 asm = Assembler.Assembler()
 
 previousIndex = 0
+lineIndex = 0
 
 if sys.stdin.isatty():
     print("Ready.")
     while sys.stdin:
         try:
             line = ""
-            while line == "" and sys.stdin:
+            while line == "" and sys.stdin:                
                 line = sys.stdin.readline().strip()
+                lineIndex += 1
         except KeyboardInterrupt:
             break
-        lexed = lexAsm(line)
+
+        doc = libdiagnostics.SourceDocument(line, "line " + str(line))
+        lexed = lexAsm(doc)
         printDebug(lexed)
-        instrs = parseAllInstructions(TokenStream(lexed))
+        instrs = parseAllInstructions(TokenStream(lexed, doc))
         printDebug(instrs)
         printDebug(repr(instrs))
 
@@ -127,8 +133,10 @@ if sys.stdin.isatty():
             previousIndex = len(asm.code)
 else:
     for line in sys.stdin:
-        lexed = lexAsm(line)
-        instrs = parseAllInstructions(TokenStream(lexed))
+        lineIndex += 1
+        doc = libdiagnostics.SourceDocument(line, "line " + str(line))
+        lexed = lexAsm(doc)
+        instrs = parseAllInstructions(TokenStream(lexed, doc))
         for item in instrs:
             asm.process(item)
     

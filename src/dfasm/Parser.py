@@ -3,6 +3,7 @@ import Assembler
 import Lexer
 import Symbols
 import math
+import libdiagnostics
 from Encoding import *
 
 precedence = {
@@ -31,14 +32,15 @@ operations = {
 
 class TokenStream(object):
     """ Defines a token stream. """ 
-    def __init__(self, tokens):
+    def __init__(self, tokens, doc):
         self.tokens = tokens
+        self.doc = doc
         self.index = 0
 
     def peek(self):
         """ Peeks a token from the token stream. """
         if self.index >= len(self.tokens):
-            return Lexer.Token("", "end-of-stream")
+            return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
         return self.tokens[self.index]
 
     def peekNoTrivia(self):
@@ -63,7 +65,7 @@ class TokenStream(object):
     def nextToken(self):
         """ Reads the next token from the token stream. """
         if self.index >= len(self.tokens):
-            return Lexer.Token("", "end-of-stream")
+            return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
         i = self.index
         self.index += 1
         return self.tokens[i]

@@ -1,9 +1,11 @@
 import Automata
+import libdiagnostics
 
 class Token(object):
-    def __init__(self, contents, type):
+    def __init__(self, contents, type, location):
         self.contents = contents
         self.type = type
+        self.location = location
 
     def isTrivia(self):
         return self.type == 'whitespace' or self.type == 'comment' or self.type == 'newline'
@@ -12,7 +14,7 @@ class Token(object):
         return self.contents
 
     def __repr__(self):
-        return 'Token(%r, %r)' % (self.contents, self.type)
+        return 'Token(%r, %r, %r)' % (self.contents, self.type, self.location)
 
 def longestSubstring(text, startIndex, regex):
     state = regex.GetInitialState()
@@ -84,19 +86,20 @@ def getBestMatch(text, startIndex, grammar):
 
     return result, longest
 
-def lex(text, regexes):
+def lex(doc, regexes):
     results = []
     size = 0
+    text = doc.Source
     processedText = processText(text)
     while size < len(processedText):
         type, newSize = getBestMatch(processedText, size, regexes)
-        token = Token(text[size:newSize], type)
+        token = Token(text[size:newSize], type, libdiagnostics.SourceLocation(doc, size, newSize - size))
         results.append(token)
         size = newSize
     return results
 
-def combineTokens(tokens, type):
-    return Token("".join(map(lambda x: x.contents, tokens)), type)
+def combineTokens(tokens, type, loc):
+    return Token("".join(map(lambda x: x.contents, tokens)), type, loc)
 
 def processComments(tokens):
     results = []
@@ -107,7 +110,7 @@ def processComments(tokens):
             while i < len(tokens) and tokens[i].type != "newline":
                 commentTokens.append(tokens[i])
                 i += 1
-            results.append(combineTokens(commentTokens, "comment"))
+            results.append(combineTokens(commentTokens, "comment", commentTokens[0].location))
         else:
             results.append(tokens[i])
             i += 1
@@ -128,8 +131,8 @@ def processStrings(tokens):
                 fullString = ''.join(currentString).decode('string_escape')
                 for i, c in enumerate(fullString):
                     if i > 0:
-                        result.append(Token(',', 'comma'))
-                    result.append(Token(str(ord(c)), 'integer'))
+                        result.append(Token(',', 'comma', t.location))
+                    result.append(Token(str(ord(c)), 'integer', t.location))
                 currentString = None
         elif currentString is not None:
             currentString.append(t.contents)
