@@ -35,7 +35,7 @@ def getCoffStorageClass(symbol):
 
 def getCoffRelocationType(is64Bit, reloc):
     if reloc.operandSize != size32:
-        raise Exception("Non-32-bit relocations are not supported.")
+        raise ValueError("Non-32-bit relocations are not supported.")
 
     if reloc.isRelative: # I don't think we need to account for 16-bit relocations.
                          # We don't emit those, and doing so anyway would be dangerous.

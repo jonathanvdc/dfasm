@@ -20,14 +20,14 @@ class LocalSymbol(object):
     def define(self, other):
         """ Defines this local symbol's name and offset. """
         if isinstance(other, ExternalSymbol):
-            raise Exception("'" + str(self) + "' cannot be made external because symbols must be either external, global or local.")
+            raise ValueError("'" + str(self) + "' cannot be made external because symbols must be either external, global or local.")
 
         self.name = other.name
         if not self.isDefined:
             if other.isDefined:
                 self.offset = other.offset
         elif other.isDefined:
-            raise Exception("Symbol '" + str(self) + "' is defined more than once.")
+            raise ValueError("Symbol '" + str(self) + "' is defined more than once.")
         if other.isPublic:
             self.makePublic()
 
@@ -67,9 +67,9 @@ class ExternalSymbol(object):
 
     def makePublic(self):
         """ Makes this external symbol public (global). """
-        raise Exception("'" + str(self) + "' cannot be made global because symbols cannot be both external and global.")
+        raise ValueError("'" + str(self) + "' cannot be made global because symbols cannot be both external and global.")
 
     def define(self, other):
         """ "Defines" this external symbol. """
-        raise Exception("'" + str(self) + "' cannot be defined locally because it is external. Did you mean to declare '" + 
+        raise ValueError("'" + str(self) + "' cannot be defined locally because it is external. Did you mean to declare '" + 
                         str(self.name) + "' as '.global " + str(self.name) + "' instead?")

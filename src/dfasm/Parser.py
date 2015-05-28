@@ -226,6 +226,7 @@ class MemoryNode(object):
         indices = self.getIndexOperands(addrOp)
         baseRegisters = map(lambda x: x[0], filter(lambda x: x[1] == 0, indices)) # Make index registers addressed as `eax * 1` or `ebx << 0` base registers.
         indices = filter(lambda x: x[1] != 0, indices)
+
         if len(indices) == 0 and len(baseRegisters) == 1: # Simple
             return Instructions.MemoryOperand(baseRegisters[0], disp, size8)
         elif len(baseRegisters) == 2: # Simple SIB
@@ -233,11 +234,11 @@ class MemoryNode(object):
         elif len(baseRegisters) == 1 and len(indices) == 1: # Typical SIB
             return Instructions.SIBMemoryOperand(baseRegisters[0], indices[0][0], indices[0][1], disp, size8)
         elif len(baseRegisters) > 2: # Whaaaat?
-            raise Exception("More than two base registers are not supported. ('" + str(self) + "')") 
+            raise ValueError("More than two base registers are not supported. ('" + str(self) + "')") 
         elif len(indices) > 2:
-            raise Exception("More than two index registers are not supported. ('" + str(self) + "')") 
+            raise ValueError("More than two index registers are not supported. ('" + str(self) + "')") 
         else:
-            raise Exception("Bad memory operand ('" + str(self) + "')")
+            raise ValueError("Bad memory operand ('" + str(self) + "')")
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)
@@ -304,7 +305,7 @@ class CastNode(object):
         try:
             return parseSize(self.type.contents)
         except:
-            raise Exception("Invalid data type '" + str(self.type) + " " + str(self.ptr) + "' in cast expression '" + str(self) + "'")
+            raise ValueError("Invalid data type '" + str(self.type) + " " + str(self.ptr) + "' in cast expression '" + str(self) + "'")
             
     def toOperand(self, asm):
         """ Converts the cast node to an operand. """
@@ -395,11 +396,11 @@ class IntegerDataDirective(DirectiveNodeBase):
     def apply(self, asm):
         for item in self.dataList.toOperands(asm):
             if not isinstance(item, Instructions.ImmediateOperandBase):
-                raise Exception("'." + str(self.typeToken) + "' directive arguments must be immediate operands.")
+                raise ValueError("'." + str(self.typeToken) + "' directive arguments must be immediate operands.")
             val = item.toUnsigned()
             maxSize = 2 ** (self.size.size * 8) - 1
             if item.value < 0 or item.value > maxSize:
-                raise Exception("'." + str(self.typeToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
+                raise ValueError("'." + str(self.typeToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
             asm.writeArgument(item.cast(self.size))
 
 class DataArrayDirective(DirectiveNodeBase):
@@ -424,16 +425,16 @@ class DataArrayDirective(DirectiveNodeBase):
         elem = self.element.toOperand(asm)
         arrLengthOp = self.length.toOperand(asm)
         if not isinstance(elem, Instructions.ImmediateOperandBase):
-            raise Exception("'" + self.headerStr() + "' directive element must be an immediate operand.")
+            raise ValueError("'" + self.headerStr() + "' directive element must be an immediate operand.")
         if not isinstance(arrLengthOp, Instructions.ImmediateOperandBase):
-            raise Exception("'" + self.headerStr() + "' directive array size must be immediate operands.")
+            raise ValueError("'" + self.headerStr() + "' directive array size must be immediate operands.")
         arrLength = arrLengthOp.value
         if arrLength < 0:
-            raise Exception("'" + self.headerStr() + "' directive array size must be greater than or equal to zero.")
+            raise ValueError("'" + self.headerStr() + "' directive array size must be greater than or equal to zero.")
 
         maxSize = 2 ** (self.size.size * 8) - 1
         if elem.value < 0 or elem.value > maxSize:
-            raise Exception("'" + self.headerStr() + "' directive element must be in the 0-" + str(maxSize) + " range.")
+            raise ValueError("'" + self.headerStr() + "' directive element must be in the 0-" + str(maxSize) + " range.")
 
         arrElem = elem.toUnsigned().cast(self.size)
 
@@ -596,7 +597,7 @@ def parseDirective(tokens, dot):
             args = parseArgumentList(tokens)
             return IntegerDataDirective(dot, dirName, parseSize(dirName.contents), args)
     else:
-        raise Exception("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
+        raise ValueError("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
     
 
 def parseInstruction(tokens):

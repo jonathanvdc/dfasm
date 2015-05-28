@@ -4,7 +4,7 @@ import Symbols
 
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
-        raise Exception("'" + name + "' does not take any arguments.")
+        raise ValueError("'" + name + "' does not take any arguments.")
     asm.write(opCode)
 
 def createModRM(mode, regIndex, memIndex):
@@ -13,12 +13,12 @@ def createModRM(mode, regIndex, memIndex):
 
 def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     if len(args) != 1:
-        raise Exception("'" + name + "' takes precisely one argument.")
+        raise ValueError("'" + name + "' takes precisely one argument.")
     arg = args[0]
 
     isWord = arg.operandSize > size8
     if isWord and byteOnly:
-        raise Exception("'" + name ++ "' requires a byte argument.")
+        raise ValueError("'" + name ++ "' requires a byte argument.")
     argIndex = arg.operandIndex
 
     opcodeByte = opCode | (0x01 if isWord else 0x00)
@@ -29,14 +29,14 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
 
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
-        raise Exception("'" + name + "' takes precisely two arguments.")
+        raise ValueError("'" + name + "' takes precisely two arguments.")
     reverseArgs = args[0].addressingMode != "register"
     regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
     if reverseFlag != None:
         reverseArgs = reverseFlag
 
     if regArg.addressingMode != "register":
-        raise Exception("'" + name + "' must take at least one register operand.")
+        raise ValueError("'" + name + "' must take at least one register operand.")
 
     if needCast and memArg.operandSize != regArg.operandSize:
         memArg = memArg.cast(regArg.operandSize) # Cast if necessary
@@ -53,7 +53,7 @@ def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag
 
 def writeBinaryImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2:
-        raise Exception("'" + name + "' takes precisely two arguments.")
+        raise ValueError("'" + name + "' takes precisely two arguments.")
 
     memArg, immArg = args[0], args[1]
 
@@ -63,7 +63,7 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
         immArg = immArg.cast(size8)
     elif immArg.operandSize != size8:
         if not wordReg:
-            raise Exception("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(memArg) + "'")
+            raise ValueError("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(memArg) + "'")
         immArg = immArg.cast(memArg.operandSize)
         
     shortImm = immArg.operandSize != memArg.operandSize
@@ -76,7 +76,7 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
 
 def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2 and len(args) != 3:
-        raise Exception("'" + name + "' takes either two or three arguments.")
+        raise ValueError("'" + name + "' takes either two or three arguments.")
 
     if len(args) == 2:
         args = [ args[0], args[0], args[1] ] # transform `imul eax,      10`
@@ -85,11 +85,11 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     regArg, memArg, immArg = args[0], args[1], args[2]
 
     if regArg.addressingMode != "register":
-        raise Exception("'" + name + "' instruction must have a register operand as its first argument.")
+        raise ValueError("'" + name + "' instruction must have a register operand as its first argument.")
 
     if regArg.operandSize != memArg.operandSize:
         if memArg.addressingMode == "register":
-            raise Exception("Register size mismatch ('" + str(regArg) + "' and '" + str(memArg) + "') in '" + name + "' instruction.")
+            raise ValueError("Register size mismatch ('" + str(regArg) + "' and '" + str(memArg) + "') in '" + name + "' instruction.")
         else:
             memArg = memArg.cast(regArg.operandSize)
 
@@ -99,7 +99,7 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
         immArg = immArg.cast(size8)
     elif immArg.operandSize != size8:
         if not wordReg:
-            raise Exception("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(regArg) + "'")
+            raise ValueError("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(regArg) + "'")
         immArg = immArg.cast(memArg.operandSize)
         
     shortImm = immArg.operandSize != memArg.operandSize
@@ -112,7 +112,7 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
 
 def writeMovImmediateInstruction(asm, args):
     if len(args) != 2:
-        raise Exception("'mov' takes precisely two arguments.")
+        raise ValueError("'mov' takes precisely two arguments.")
 
     memArg, immArg = args[0], args[1]
 
@@ -127,10 +127,10 @@ def writeMovImmediateInstruction(asm, args):
 
 def writeInterruptInstruction(asm, args):
     if len(args) != 1:
-        raise Exception("'int' takes precisely one argument.")
+        raise ValueError("'int' takes precisely one argument.")
     immArg = args[0].toUnsigned()
     if immArg.operandSize > size8:
-        raise Exception("'int' must take an 8-bit operand.")
+        raise ValueError("'int' must take an 8-bit operand.")
 
     asm.write([0xcd])
     asm.writeArgument(immArg.cast(size8))
@@ -140,7 +140,7 @@ def writePushPopRegisterInstruction(regOpCode, asm, arg):
 
 def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
     if len(args) != 1:
-        raise Exception("'" + name + "' takes precisely one argument.")
+        raise ValueError("'" + name + "' takes precisely one argument.")
 
     arg = args[0]
 
@@ -152,11 +152,11 @@ def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
 
 def writeEnterInstruction(asm, args):
     if len(args) != 2:
-        raise Exception("'enter' takes precisely two arguments.")
+        raise ValueError("'enter' takes precisely two arguments.")
     if not isinstance(args[0], Instructions.ImmediateOperandBase) or not isinstance(args[1], Instructions.ImmediateOperandBase):
-        raise Exception("'enter' must take two immediate arguments.")
+        raise ValueError("'enter' must take two immediate arguments.")
     if args[0].operandSize > size16 or args[1].operandSize > size8:
-        raise Exception("'enter' must take a 16-bit operand and an 8-bit operand.")
+        raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
 
     asm.write([0xc8])
     asm.writeArgument(args[0].cast(size16))
@@ -164,7 +164,7 @@ def writeEnterInstruction(asm, args):
 
 def writeRetInstruction(asm, args):
     if len(args) > 1 or (len(args) > 0 and args[0].operandSize > size16):
-        raise Exception("'ret' takes at most one 16-bit operand.")
+        raise ValueError("'ret' takes at most one 16-bit operand.")
 
     if len(args) == 0 or args[0].operandSize == size0:
         writeSimpleInstruction("ret", [0xc3], asm, args)
@@ -174,15 +174,15 @@ def writeRetInstruction(asm, args):
 
 def writeTestImmediateInstruction(asm, args):
     if len(args) != 2:
-        raise Exception("'test' takes precisely two operands.")
+        raise ValueError("'test' takes precisely two operands.")
     
     (memArg, immArg) = (args[0], args[1]) if isinstance(args[1], Instructions.ImmediateOperandBase) else (args[1], args[0])
 
     if not isinstance(immArg, Instructions.ImmediateOperandBase) or isinstance(memArg, Instructions.ImmediateOperandBase):
-        raise Exception("'test' must take precisely one immediate operand and one memory/register operand.")
+        raise ValueError("'test' must take precisely one immediate operand and one memory/register operand.")
 
     if immArg.operandSize > memArg.operandSize:
-        raise Exception("The immediate operand may not be greater than the memory operand in a 'test' instruction.")
+        raise ValueError("The immediate operand may not be greater than the memory operand in a 'test' instruction.")
 
     isWord = memArg.operandSize > size8
     if memArg.operandIndex == 0 and memArg.addressingMode == "register":
@@ -201,7 +201,7 @@ def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
 
 def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'" + name + "' takes precisely one immediate operand.")
+        raise ValueError("'" + name + "' takes precisely one immediate operand.")
 
     relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
 
@@ -224,7 +224,7 @@ def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstruc
 
 def writeShiftInstruction(name, extension, asm, args):
     if len(args) != 2:
-        raise Exception("'%s' takes precisely two operands." % name)
+        raise ValueError("'%s' takes precisely two operands." % name)
 
     memArg, shiftArg = args
     wordReg = memArg.operandSize > size8
@@ -232,7 +232,7 @@ def writeShiftInstruction(name, extension, asm, args):
 
     if isinstance(shiftArg, Instructions.ImmediateOperandBase):
         if shiftArg.operandSize > size8:
-            raise Exception("The immediate argument to a shift instruction cannot be larger than a byte.")
+            raise ValueError("The immediate argument to a shift instruction cannot be larger than a byte.")
         v = shiftArg.value & 31
         if v == 1:
             asm.write([0xD1 if wordReg else 0xD0, modRM])
@@ -241,19 +241,19 @@ def writeShiftInstruction(name, extension, asm, args):
     elif shiftArg is registers["cl"]:
         asm.write([0xD3 if wordReg else 0xD2, modRM])
     else:
-        raise Exception("The second argument to a shift instruction must be an "
+        raise ValueError("The second argument to a shift instruction must be an "
                         "immediate byte or the register CL.")
     asm.writeArgument(memArg)
 
 def writeCallInstruction(asm, args):
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'call' takes precisely one immediate operand.")
+        raise ValueError("'call' takes precisely one immediate operand.")
     asm.write([0xe8])
     asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
     
 def writeJumpInstruction(asm, args):
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise Exception("'jmp' takes precisely one immediate operand.")
+        raise ValueError("'jmp' takes precisely one immediate operand.")
 
     relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
 
