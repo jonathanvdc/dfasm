@@ -568,10 +568,10 @@ def parseInstruction(tokens):
             ^~~~~~~~~~~~
     """
 
-    first = tokens.nextNoTrivia()
+    if tokens.peekNoTrivia().type == "dot":
+        return parseDirective(tokens, tokens.nextNoTrivia())
 
-    if first.type == "dot":
-        return parseDirective(tokens, first)
+    first = tokens.nextNoTrivia("identifier")        
 
     # If a colon follows the first token, this is a label.
     if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":
