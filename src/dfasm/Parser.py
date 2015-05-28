@@ -38,10 +38,13 @@ class TokenStream(object):
         self.index = 0
         self.log = log
 
+    def endOfStream(self):
+        return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
+
     def peek(self):
         """ Peeks a token from the token stream. """
         if self.index >= len(self.tokens):
-            return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
+            return self.endOfStream()
         return self.tokens[self.index]
 
     def peekNoTrivia(self):
@@ -50,7 +53,7 @@ class TokenStream(object):
         i = 1
         while result.isTrivia():
             if self.index + i >= len(self.tokens):
-                return Lexer.Token("", "end-of-stream")
+                return self.endOfStream()
             result = self.tokens[self.index + i]
             i += 1
         return result
@@ -66,7 +69,7 @@ class TokenStream(object):
     def nextToken(self):
         """ Reads the next token from the token stream. """
         if self.index >= len(self.tokens):
-            return Lexer.Token("", "end-of-stream", libdiagnostics.SourceLocation(self.doc, self.doc.Source.Length - 1, 1))
+            return self.endOfStream()
         i = self.index
         self.index += 1
         return self.tokens[i]
