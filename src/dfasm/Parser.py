@@ -497,11 +497,10 @@ def parseLiteral(tokens):
         mov  ax, 123
              ^~  ^~~
     """
-    token = tokens.nextNoTrivia()
-    if token.type == "integer":
-        return IntegerNode(token)
+    if tokens.peekNoTrivia().type == "integer":
+        return IntegerNode(tokens.nextNoTrivia())
     else:
-        return IdentifierNode(token)
+        return IdentifierNode(tokens.nextNoTrivia("identifier"))
 
 def parseParentheses(tokens):
     """ Parses a parenthesized expression.
