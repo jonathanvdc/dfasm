@@ -32,10 +32,11 @@ operations = {
 
 class TokenStream(object):
     """ Defines a token stream. """ 
-    def __init__(self, tokens, doc):
+    def __init__(self, tokens, doc, log):
         self.tokens = tokens
         self.doc = doc
         self.index = 0
+        self.log = log
 
     def peek(self):
         """ Peeks a token from the token stream. """
@@ -80,7 +81,7 @@ class TokenStream(object):
         self.skipTrivia()
         out = self.nextToken()
         if not (tokenType == None) and out.type != tokenType:
-            print("Error: Expected token of type " + tokenType + ", got token of type " + out.type + " instead.")
+            self.log.LogError("Unexpected token", "Expected token of type '" + tokenType + "', got token of type '" + out.type + "' instead.", out.location)
         return out
             
 

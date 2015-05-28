@@ -19,6 +19,8 @@ namespace libdiagnostics
             this = default(Color);
             this.Red = Red;
             this.Green = Green;
+            this.Blue = Blue;
+            this.Alpha = Alpha;
         }
         /// <summary>
         /// Creates a new color instance from the given RGB channels.

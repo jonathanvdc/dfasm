@@ -105,6 +105,8 @@ asm = Assembler.Assembler()
 previousIndex = 0
 lineIndex = 0
 
+log = libdiagnostics.ConsoleLog(libdiagnostics.ConsoleEnvironment.AcquireConsole())
+
 if sys.stdin.isatty():
     print("Ready.")
     while sys.stdin:
@@ -119,7 +121,7 @@ if sys.stdin.isatty():
         doc = libdiagnostics.SourceDocument(line, "line " + str(line))
         lexed = lexAsm(doc)
         printDebug(lexed)
-        instrs = parseAllInstructions(TokenStream(lexed, doc))
+        instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         printDebug(instrs)
         printDebug(repr(instrs))
 
@@ -139,7 +141,7 @@ else:
         lineIndex += 1
         doc = libdiagnostics.SourceDocument(line, "line " + str(line))
         lexed = lexAsm(doc)
-        instrs = parseAllInstructions(TokenStream(lexed, doc))
+        instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
             asm.process(item)
     

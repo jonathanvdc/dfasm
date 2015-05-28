@@ -57,7 +57,6 @@ namespace libdiagnostics
 
         public void WriteBlockEntry(string Header, Color HeaderColor, Color PrimaryColor, Color SecondaryColor, LogEntry Entry)
         {
-            Console.WriteSeparator(2);
             WriteEntry(Header, HeaderColor, PrimaryColor, SecondaryColor, Entry);
             Console.WriteSeparator(2);
         }
