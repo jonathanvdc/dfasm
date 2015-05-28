@@ -70,7 +70,7 @@ namespace libdiagnostics
                 int result = Console.BufferWidth;
                 return result > 0 ? result : 80;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return 80;
             }
