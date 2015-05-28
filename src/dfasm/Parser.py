@@ -48,6 +48,9 @@ class TokenStream(object):
         location = libdiagnostics.SourceLocation.End(self.doc)
         return Lexer.Token("", "end-of-stream", location)
 
+    def remainingTokens(self):
+        return self.tokens[self.index:]
+
     def peek(self):
         """ Peeks a token from the token stream. """
         if self.index >= len(self.tokens):
@@ -56,14 +59,10 @@ class TokenStream(object):
 
     def peekNoTrivia(self):
         """ Peeks a non-trivia token from the token stream. """
-        result = self.peek()
-        i = 1
-        while result.isTrivia():
-            if self.index + i >= len(self.tokens):
-                return self.endOfStream()
-            result = self.tokens[self.index + i]
-            i += 1
-        return result
+        for token in self.remainingTokens():
+            if not token.isTrivia():
+                return token
+        return self.endOfStream()
 
     def isEmpty(self):
         """ Finds out if the token stream is empty. """
@@ -71,15 +70,13 @@ class TokenStream(object):
 
     def isTrivia(self):
         """ Finds out if all future tokens in the token stream are trivia. """
-        return self.isEmpty() or all([item.isTrivia() for item in self.tokens[self.index:]])
+        return all(item.isTrivia() for item in self.remainingTokens())
 
     def nextToken(self):
         """ Reads the next token from the token stream. """
-        if self.index >= len(self.tokens):
-            return self.endOfStream()
-        i = self.index
+        token = self.peek()
         self.index += 1
-        return self.tokens[i]
+        return token
 
     def skipTrivia(self):
         """ Skips trivia tokens. """
@@ -89,10 +86,12 @@ class TokenStream(object):
     def nextNoTrivia(self, tokenType = None):
         """ Reads the next non-trivia token. """
         self.skipTrivia()
-        out = self.nextToken()
-        if not (tokenType == None) and out.type != tokenType:
-            self.log.LogError("Unexpected token", "Expected token of type '" + tokenType + "', got token of type '" + out.type + "' instead.", out.location)
-        return out
+        result = self.nextToken()
+        if tokenType is not None and result.type != tokenType:
+            errorMsg = "Expected token of type '%s', got token of " \
+                       "type '%s' instead." % (tokenType, result.type)
+            self.log.LogError("Unexpected token", errorMsg, result.location)
+        return result
             
 
 class LiteralNode(object):
@@ -172,11 +171,11 @@ class MemoryNode(object):
         if isinstance(operand, Instructions.RegisterOperand):
             return [(operand.register, 0)]
         elif isinstance(operand, Instructions.BinaryOperand):
-            if operand.op == "asterisk" or operand.op == "lessthanlessthan":
+            if operand.op == "asterisk" or operand.op == "lshift":
                 if isinstance(operand.left, Instructions.RegisterOperand) and isinstance(operand.right, Instructions.ImmediateOperand):
-                    return [(operand.left.register, operand.right.value if operand.op == "lessthanlessthan" else int(math.log(operand.right.value, 2)))]
+                    return [(operand.left.register, operand.right.value if operand.op == "lshift" else int(math.log(operand.right.value, 2)))]
                 elif isinstance(operand.right, Instructions.RegisterOperand) and isinstance(operand.left, Instructions.ImmediateOperand):
-                    return [(operand.right.register, operand.left.value if operand.op == "lessthanlessthan" else int(math.log(operand.left.value, 2)))]
+                    return [(operand.right.register, operand.left.value if operand.op == "lshift" else int(math.log(operand.left.value, 2)))]
                 else:
                     raise Exception("Memory operands do not support complex operations on registers, such as '" + str(operand) + "'")
             elif operand.op == "plus":
