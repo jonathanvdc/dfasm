@@ -122,7 +122,7 @@ if sys.stdin.isatty():
         except KeyboardInterrupt:
             break
 
-        doc = libdiagnostics.SourceDocument(line, "line " + str(line))
+        doc = libdiagnostics.SourceDocument(line, "line " + str(lineIndex))
         lexed = lexAsm(doc)
         printDebug(lexed)
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
@@ -143,7 +143,7 @@ if sys.stdin.isatty():
 else:
     for line in sys.stdin:
         lineIndex += 1
-        doc = libdiagnostics.SourceDocument(line, "line " + str(line))
+        doc = libdiagnostics.SourceDocument(line, "line " + str(lineIndex))
         lexed = lexAsm(doc)
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:

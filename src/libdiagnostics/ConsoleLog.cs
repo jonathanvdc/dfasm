@@ -87,8 +87,12 @@ namespace libdiagnostics
             var extPalette = new ExtendedPalette(Palette, dependentStyles);
 
             writer.Write(nodes, Console, extPalette);
-            
-            Console.WriteLine();
+
+            Console.WriteSeparator(1);
+
+            Console.PushStyle(new Style("remark", DimGray, new Color()));
+            Console.WriteLine("Remark: In '" + Entry.Location.Document.Identifier + "'.");
+            Console.PopStyle();
         }
 
         #endregion
