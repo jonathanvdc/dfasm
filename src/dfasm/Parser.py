@@ -508,9 +508,9 @@ def parseParentheses(tokens):
         (1 + 3)
         ^~~~~~~
     """
-    lparen = tokens.nextNoTrivia()
+    lparen = tokens.nextNoTrivia("lparen")
     expr = parseArgument(tokens)
-    rparen = tokens.nextNoTrivia()
+    rparen = tokens.nextNoTrivia("rparen")
     return ParenthesesNode(lparen, expr, rparen)
 
 def parsePrimary(tokens):
@@ -536,12 +536,12 @@ def parseDirective(tokens, dot):
         ^~~~~~~~~~~~~~
     """
 
-    dirName = tokens.nextNoTrivia()
+    dirName = tokens.nextNoTrivia("identifier")
     if dirName.contents == "globl" or dirName.contents == "global":
-        symName = tokens.nextNoTrivia()
+        symName = tokens.nextNoTrivia("identifier")
         return GlobalDirective(dot, dirName, symName)
     elif dirName.contents == "extrn" or dirName.contents == "extern":
-        symName = tokens.nextNoTrivia()
+        symName = tokens.nextNoTrivia("identifier")
         return ExternDirective(dot, dirName, symName)
     elif isSize(dirName.contents):
         if tokens.peekNoTrivia().contents == "array":
