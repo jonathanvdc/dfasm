@@ -60,7 +60,6 @@ asmRegexes = {
     "dot"                       :   ".",
     "colon"                     :   ":",
     "semicolon"                 :   ";",
-    "dot"                       :   ".",
     "quote"                     :   '"',
 }
 

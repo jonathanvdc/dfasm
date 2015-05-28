@@ -75,10 +75,13 @@ class TokenStream(object):
         while self.peek().isTrivia():
             self.nextToken()
 
-    def nextNoTrivia(self):
+    def nextNoTrivia(self, tokenType = None):
         """ Reads the next non-trivia token. """
         self.skipTrivia()
-        return self.nextToken()
+        out = self.nextToken()
+        if not (tokenType == None) and out.type != tokenType:
+            print("Error: Expected token of type " + tokenType + ", got token of type " + out.type + " instead.")
+        return out
             
 
 class LiteralNode(object):
@@ -428,9 +431,9 @@ def parseMemory(tokens):
         mov  ax, [bx+si]
                  ^~~~~~~
     """
-    lbracket = tokens.nextNoTrivia()
+    lbracket = tokens.nextNoTrivia("lbracket")
     addr = parseAddress(tokens)
-    rbracket = tokens.nextNoTrivia()
+    rbracket = tokens.nextNoTrivia("rbracket")
     return MemoryNode(lbracket, addr, rbracket)
 
 def parseBinary(tokens, left, currentPrecedence):

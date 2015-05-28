@@ -67,9 +67,12 @@ def createObjectFile(asm, is64Bit):
             
     return libcoff.ObjectFile(arch, sections, symbols, libcoff.CoffHeaderFlags())
 
+def getEntryPoint(asm):
+	return asm.getSymbol("main") if (asm.hasSymbol("main") and asm.getSymbol("main").isPublic) else None
+	
 def getEntryPointOffset(asm):
-    return asm.getSymbol("main").offset if (asm.hasSymbol("main") and asm.getSymbol("main").isPublic) else 0
-
+    return getEntryPoint(asm).offset if getEntryPoint(asm) != None else 0
+	
 debug = False
 jit = False
 repl = True
@@ -162,7 +165,10 @@ elif output[-2:] == ".o":
 elif output[-4:] == ".com":
     asm.baseOffset = 0x100
     asm.patchLabels()
+    entryPoint = getEntryPoint(asm)
     offset = getEntryPointOffset(asm)
+    if offset != 0:
+        asm.code[0:0]  = [ 0xe9 ] + to32le(offset)
     target = System.IO.FileStream(output, System.IO.FileMode.Create, System.IO.FileAccess.Write)
-    target.Write(System.Array[System.Byte](asm.code), offset, len(asm.code))
+    target.Write(System.Array[System.Byte](asm.code), 0, len(asm.code))
     target.Dispose()
