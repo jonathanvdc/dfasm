@@ -8,26 +8,26 @@ from Encoding import *
 
 precedence = {
     "asterisk" : 0,
-    "slash" : 0,
-    "percent" : 0,
-    "plus" : 1,
-    "minus" : 1,
-    "lessthanlessthan" : 2,
-    "greaterthangreaterthan" : 2,
-    "and" : 3,
-    "or" : 4
+    "slash"    : 0,
+    "percent"  : 0,
+    "plus"     : 1,
+    "minus"    : 1,
+    "lshift"   : 2,
+    "rshift"   : 2,
+    "ampersand": 3,
+    "bar"      : 4,
 }
 
 operations = {
-    "plus"                   : lambda lhs, rhs: lhs + rhs,
-    "minus"                  : lambda lhs, rhs: lhs - rhs,
-    "asterisk"               : lambda lhs, rhs: lhs * rhs,
-    "slash"                  : lambda lhs, rhs: lhs / rhs,
-    "percent"                : lambda lhs, rhs: lhs % rhs,
-    "and"                    : lambda lhs, rhs: lhs & rhs,
-    "or"                     : lambda lhs, rhs: lhs | rhs,
-    "lessthanlessthan"       : lambda lhs, rhs: lhs << rhs,
-    "greaterthangreaterthan" : lambda lhs, rhs: lhs >> rhs
+    "plus"     : lambda a, b: a + b,
+    "minus"    : lambda a, b: a - b,
+    "asterisk" : lambda a, b: a * b,
+    "slash"    : lambda a, b: a / b,
+    "percent"  : lambda a, b: a % b,
+    "ampersand": lambda a, b: a & b,
+    "bar"      : lambda a, b: a | b,
+    "lshift"   : lambda a, b: a << b,
+    "rshift"   : lambda a, b: a >> b,
 }
 
 class TokenStream(object):
