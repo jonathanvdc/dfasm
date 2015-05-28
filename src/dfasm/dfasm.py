@@ -20,8 +20,12 @@ def printDebug(value):
         print(value)
 
 def printHex(values):
-    text = "{ " + ", ".join(map(lambda x: hex(x) if isinstance(x, int) else str(x), values)) + " }"
-    print(text)
+    def showValue(x):
+        if isinstance(x, int):
+            return '%02X' % x
+        else:
+            return str(x)
+    print("{ %s }" % ", ".join(showValue(x) for x in values))
 
 def getCoffStorageClass(symbol):
     if symbol.isExternal or symbol.isPublic:
