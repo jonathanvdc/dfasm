@@ -182,7 +182,7 @@ class MemoryNode(object):
 
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
-        left-shift amount (1, 2, 4, or 8). """
+        left-shift amount (0, 1, 2, or 3). """
         
         if isinstance(operand, Instructions.RegisterOperand):
             return [(operand.register, 0)]
@@ -241,7 +241,6 @@ class MemoryNode(object):
         elif len(indices) > 2:
             raise ValueError("A memory operand contains at most two registers.")
         else:
-            # XXX: is mov eax, [ebx * 4] (i.e. only an index register, no base) valid?
             raise ValueError("Bad memory operand.")
 
     def __str__(self):
