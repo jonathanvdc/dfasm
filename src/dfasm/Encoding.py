@@ -48,14 +48,17 @@ size16 = OperandSize(2, to16le)
 size32 = OperandSize(4, to32le)
 
 dataTypes = { 
+    "db"      : size8,
     "byte"    : size8, 
     "size8"   : size8,
+    "dw"      : size16,
     "word"    : size16, 
     "short"   : size16, 
     "size16"  : size16,
+    "dd"      : size32,
     "dword"   : size32,
     "int"     : size32,
-    "size32"  : size32
+    "size32"  : size32,
 }
 
 def isSize(val):
