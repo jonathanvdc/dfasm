@@ -155,7 +155,10 @@ if sys.stdin.isatty():
         printDebug(repr(instrs))
 
         for item in instrs:
-            asm.process(item)
+            try:
+                asm.process(item)
+            except libdiagnostics.DiagnosticsException as ex:
+                log.LogError(ex.Entry)
     
         if debug:
             for item in filter(lambda x: isinstance(x, InstructionNode), instrs):
@@ -173,7 +176,10 @@ else:
         lexed = lexAsm(doc)
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
-            asm.process(item)
+            try:
+                asm.process(item)
+            except libdiagnostics.DiagnosticsException as ex:
+                log.LogError(ex.Entry)
 
 if jit:
     virtBuf = libjit.VirtualBuffer.Create(asm.index)

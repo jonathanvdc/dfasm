@@ -5,6 +5,7 @@ import Symbols
 import math
 import libdiagnostics
 from Encoding import *
+from libdiagnostics import DiagnosticsException
 
 precedence = {
     "asterisk" : 0,
@@ -166,6 +167,11 @@ class MemoryNode(object):
         self.address = address
         self.rbracket = rbracket
 
+    @property
+    def location(self):
+        """ Gets this memory node's source location. """
+        return self.lbracket.location.Between(self.rbracket.location)
+
     def getDisplacement(self, operand):
         """ Find the total displacement  of non-index operands represented
         by this node's address. """
@@ -178,7 +184,7 @@ class MemoryNode(object):
         elif isinstance(operand, Instructions.RegisterOperand):
             return 0
         else:
-            raise ValueError("Non-immediate SIB displacements are not supported.")
+            raise DiagnosticsException("Invalid memory operand", "Non-immediate SIB displacements are not supported.", self.location)
 
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
@@ -195,7 +201,7 @@ class MemoryNode(object):
 
                 # Disallow cases like "eax * ebx" and "2 << ebx".
                 if not isinstance(right, Instructions.ImmediateOperand):
-                    raise ValueError("'%s' is not allowed in a memory operand." % operand)
+                    raise DiagnosticsException("Invalid memory operand", "'%s' is not allowed in a memory operand." % operand, self.location)
                 
                 # Then, calculate the shift amount for (eax << k) or (eax * k).
                 shift = right.value
@@ -204,21 +210,21 @@ class MemoryNode(object):
                         factorToShift = {1: 0, 2: 1, 4: 2, 8: 3}
                         shift = factorToShift[shift]
                     except IndexError:
-                        raise ValueError("Valid multiplicands for memory operands are 1, 2, 4 and 8; got %d." % shift)
+                        raise DiagnosticsException("Invalid memory operand", "Valid multiplicands for memory operands are 1, 2, 4 and 8; got %d." % shift, self.location)
                 
                 if not 0 <= shift <= 3:
-                    raise ValueError("Valid shift amounts for memory operands are 0 through 3; got %d." % shift)
+                    raise DiagnosticsException("Invalid memory operand", "Valid shift amounts for memory operands are 0 through 3; got %d." % shift, self.location)
                 return [(left.register, shift)]
                     
             elif operand.op == "plus":
                 return self.getIndexOperands(operand.left) + self.getIndexOperands(operand.right)
             elif operand.op == "minus":
                 if self.getIndexOperands(operand.right):
-                    raise ValueError("Subtraction of memory index operands is not allowed.")
+                    raise DiagnosticsException("Invalid memory operand", "Subtraction of memory index operands is not allowed.", self.location)
                 else:
                     return self.getIndexOperands(operand.left)
             else:
-                raise ValueError("'%s' is not allowed in a memory operand." % operand)
+                raise DiagnosticsException("Invalid memory operand", "'%s' is not allowed in a memory operand." % operand, self.location)
         return []
 
     def toOperand(self, asm):
@@ -239,10 +245,10 @@ class MemoryNode(object):
             [(rI, sI)] = indexRegisters
             return Instructions.SIBMemoryOperand(rB, rI, sI, disp, size8)
         elif len(indices) > 2:
-            raise ValueError("A memory operand contains at most two registers.")
+            raise DiagnosticsException("Invalid memory operand", "A memory operand contains at most two registers.", self.location)
         else:
             # XXX: is mov eax, [ebx * 4] (i.e. only an index register, no base) valid?
-            raise ValueError("Bad memory operand.")
+            raise DiagnosticsException("Invalid memory operand", "Bad memory operand.", self.location)
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)
