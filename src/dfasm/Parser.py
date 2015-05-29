@@ -260,7 +260,7 @@ class SeparatedNode(object):
 
     def __str__(self):
         if self.separator is not None:
-            return str(self.separator) + " " + str(self.node)
+            return "%s %s" % (self.separator, self.node)
         else:
             return str(self.node)
 
@@ -273,13 +273,13 @@ class SeparatedList(object):
         self.nodes = nodes
 
     def __iter__(self):
-        return iter(map(lambda x: x.node, self.nodes))
+        return iter(n.node for n in self.nodes)
 
     def toOperands(self, asm):
-        return map(lambda x: x.toOperand(asm), self.nodes)
+        return [n.toOperand(asm) for n in self.nodes]
 
     def __str__(self):
-        return "".join(map(str, self.nodes))
+        return "".join(str(n) for n in self.nodes)
 
     def __repr__(self):
         return "SeparatedList(%r)" % self.nodes
@@ -291,7 +291,7 @@ class InstructionNode(object):
         self.argumentList = argumentList
 
     def __str__(self):
-        return str(self.mnemonic) + " " + str(self.argumentList)
+        return "%s %s" % (self.mnemonic, self.argumentList)
 
     def __repr__(self):
         return "InstructionNode(%r, %r)" % (self.mnemonic, self.argumentList)
@@ -299,6 +299,8 @@ class InstructionNode(object):
 class CastNode(object):
     """ Describes an explicit cast syntax node. """
     def __init__(self, type, ptr, expr):
+        """ `type` is the type being cast to. `ptr` is a token containing the
+        literal word "ptr". `expr` is the expression being cast. """
         self.type = type
         self.ptr = ptr
         self.expr = expr
@@ -307,15 +309,16 @@ class CastNode(object):
     def size(self):
         try:
             return parseSize(self.type.contents)
-        except:
-            raise ValueError("Invalid data type '" + str(self.type) + " " + str(self.ptr) + "' in cast expression '" + str(self) + "'")
-            
+        except IndexError:
+            raise ValueError("Invalid data type '%s %s' in cast expression '%s'" %
+                             (self.type, self.ptr, self))
+
     def toOperand(self, asm):
         """ Converts the cast node to an operand. """
         return self.expr.toOperand(asm).cast(self.size)
 
     def __str__(self):
-        return str(self.type) + " " + str(self.ptr) + " " + str(self.expr)
+        return "%s %s %s" % (self.type, self.ptr, self.expr)
 
     def __repr__(self):
         return "CastNode(%r, %r, %r)" % (self.type, self.ptr, self.expr)
@@ -323,6 +326,8 @@ class CastNode(object):
 class ParenthesesNode(object):
     """ Represents a parenthesized syntax node. """
     def __init__(self, lparen, expr, rparen):
+        """ `expr` is the expression parenthesized, and `lparen` and `rparen`
+        are its surrounding parenthesis tokens. """
         self.lparen = lparen
         self.expr = expr
         self.rparen = rparen
@@ -332,7 +337,7 @@ class ParenthesesNode(object):
         return self.expr.toOperand(asm)
 
     def __str__(self):
-        return str(self.lparen) + str(self.expr) + str(self.rparen)
+        return "%s%s%s" % (self.lparen, self.expr, self.rparen)
 
     def __repr__(self):
         return "ParenthesesNode(%r, %r, %r)" % (self.lparen, self.expr, self.rparen)
@@ -340,11 +345,13 @@ class ParenthesesNode(object):
 class LabelNode(object):
     """ Describes a label syntax node. """
     def __init__(self, name, colon):
+        """ `name` is a token containing the label name, and `colon` is the
+        colon token that follows it. """
         self.name = name
         self.colon = colon
 
     def __str__(self):
-        return str(self.name) + str(self.colon)
+        return "%s%s" % (self.name, self.colon)
 
     def __repr__(self):
         return "LabelNode(%r, %r)" % (self.name, self.colon)
@@ -354,61 +361,82 @@ class DirectiveNodeBase(object):
     pass
 
 class GlobalDirective(DirectiveNodeBase):
+    """ A global assembler directive, declaring an external symbol, such as
+    ".globl main". """
     def __init__(self, dot, globl, name):
+        """ `dot` and `globl` are tokens containing the directive; `name` is
+        a token containing its argument. """
         self.dot = dot
         self.globl = globl
         self.name = name
 
     def __str__(self):
-        return str(self.dot) + str(self.globl) + " " + str(self.name)
+        return "%s%s %s" % (self.dot, self.globl, self.name)
 
     def __repr__(self):
         return "GlobalDirective(%r, %r, %r)" % (self.dot, self.globl, self.name)
 
     def apply(self, asm):
+        """ Make the specified symbol public. """
         asm.getSymbol(self.name.contents).makePublic()
 
 class ExternDirective(DirectiveNodeBase):
     def __init__(self, dot, extern, name):
+        """ `dot` and `extern` are tokens containing the directive; `name` is
+        a token containing its argument. """
         self.dot = dot
         self.extern = extern
         self.name = name
 
     def __str__(self):
-        return str(self.dot) + str(self.extern) + " " + str(self.name)
+        return "%s%s %s" % (self.dot, self.extern, self.name)
 
     def __repr__(self):
         return "ExternDirective(%r, %r, %r)" % (self.dot, self.extern, self.name)
 
     def apply(self, asm):
+        """ Define the given symbol as an external one. """
         asm.defineSymbol(Symbols.ExternalSymbol(self.name.contents))
 
 class IntegerDataDirective(DirectiveNodeBase):
-    def __init__(self, dotToken, typeToken, size, dataList):
-        self.dotToken = dotToken
+    def __init__(self, dot, typeToken, size, dataList):
+        """ `dot` and `typeToken` are tokens containing the directive; `size`
+        is the size of each argument (an OperandSize instance), and `dataList`
+        is a SeparatedList containing the arguments as syntax nodes. """
+        self.dot = dot
         self.typeToken = typeToken
         self.size = size
         self.dataList = dataList
 
     def __str__(self):
-        return str(self.dotToken) + str(self.typeToken) + " " + str(self.dataList)
+        return "%s%s %s" % (self.dot, self.typeToken, self.dataList)
 
     def __repr__(self):
-        return "IntegerDataDirective(%r, %r, %r, %r)" % (self.dotToken, self.typeToken, self.size, self.dataList)
+        return "IntegerDataDirective(%r, %r, %r, %r)" % (self.dot, self.typeToken, self.size, self.dataList)
 
     def apply(self, asm):
-        for item in self.dataList.toOperands(asm):
-            if not isinstance(item, Instructions.ImmediateOperandBase):
-                raise ValueError("'." + str(self.typeToken) + "' directive arguments must be immediate operands.")
-            val = item.toUnsigned()
+        for operand in self.dataList.toOperands(asm):
+            if not isinstance(operand, Instructions.ImmediateOperandBase):
+                raise ValueError("'.%s' directive arguments must be immediate operands."
+                                 % self.typeToken)
+            val = operand.toUnsigned()
             maxSize = 2 ** (self.size.size * 8) - 1
-            if item.value < 0 or item.value > maxSize:
-                raise ValueError("'." + str(self.typeToken) + "' directive arguments must be in the 0-" + str(maxSize) + " range.")
-            asm.writeArgument(item.cast(self.size))
+            if not 0 <= operand.value <= maxSize:
+                raise ValueError("'.%s' directive arguments must be in the 0-%d range."
+                                 % (self.typeToken, maxSize))
+            asm.writeArgument(operand.cast(self.size))
 
 class DataArrayDirective(DirectiveNodeBase):
-    def __init__(self, dotToken, typeToken, arrayToken, size, length, element):
-        self.dotToken = dotToken        
+    def __init__(self, dot, typeToken, arrayToken, size, length, element):
+        """ `dot`, `typeToken` and `arrayToken` contain the header, of the form
+        
+            .<type> array
+
+        `size` is the size of each element (an OperandSize instance), `length`
+        is the number of times to repeat the value argument (as a syntax node
+        implementing `toOperand()`) and `element` is the repeated value (idem).
+        """
+        self.dot = dot        
         self.typeToken = typeToken
         self.arrayToken = arrayToken
         self.size = size
@@ -416,31 +444,33 @@ class DataArrayDirective(DirectiveNodeBase):
         self.element = element
 
     def headerStr(self):
-        return str(self.dotToken) + str(self.typeToken) + " " + str(self.arrayToken)
+        return "%s%s %s" % (self.dot, self.typeToken, self.arrayToken)
 
     def __str__(self):
-        return self.headerStr() + " " + str(self.length) + " " + str(self.element)
+        return "%s %s %s" % (self.headerStr(), self.length, self.element)
 
     def __repr__(self):
-        return "DataArrayDirective(%r, %r, %r, %r, %r, %r)" % (self.dotToken, self.typeToken, self.arrayToken, self.size, self.length, self.element)
+        return "DataArrayDirective(%r, %r, %r, %r, %r, %r)" \
+            % (self.dot, self.typeToken, self.arrayToken, self.size, self.length, self.element)
 
     def apply(self, asm):
         elem = self.element.toOperand(asm)
         arrLengthOp = self.length.toOperand(asm)
         if not isinstance(elem, Instructions.ImmediateOperandBase):
-            raise ValueError("'" + self.headerStr() + "' directive element must be an immediate operand.")
+            raise ValueError("'%s' directive element must be an immediate operand." % self.headerStr())
         if not isinstance(arrLengthOp, Instructions.ImmediateOperandBase):
-            raise ValueError("'" + self.headerStr() + "' directive array size must be immediate operands.")
+            raise ValueError("'%s' directive array size must be an immediate operand." % self.headerStr())
+        
         arrLength = arrLengthOp.value
         if arrLength < 0:
-            raise ValueError("'" + self.headerStr() + "' directive array size must be greater than or equal to zero.")
+            raise ValueError("'%s' directive array size may not be negative." % self.headerStr())
 
         maxSize = 2 ** (self.size.size * 8) - 1
-        if elem.value < 0 or elem.value > maxSize:
-            raise ValueError("'" + self.headerStr() + "' directive element must be in the 0-" + str(maxSize) + " range.")
+        if not 0 <= elem.value <= maxSize:
+            raise ValueError("'%s' directive element must be in the 0-%d range."
+                             % (self.headerStr(), maxSize))
 
         arrElem = elem.toUnsigned().cast(self.size)
-
         for i in range(arrLength):
             asm.writeArgument(arrElem)
 
