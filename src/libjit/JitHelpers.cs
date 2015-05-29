@@ -10,6 +10,15 @@ namespace libjit
 {
     public static class JitHelpers
     {
+        /// <summary>
+        /// Creates a delegate type from the given return type and parameter types.
+        /// This delegate type can then be used to create a delegate for a JIT function
+        /// at runtime, invoking it based on the types of the arguments that were passed
+        /// to the function.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <param name="parameterTypes"></param>
+        /// <returns></returns>
         public static Type CreateDelegateType(Type returnType, params Type[] parameterTypes)
         {
             // Borrowed from http://blog.bittercoder.com/2006/10/01/the-final-solution-for-generic-ironpython-delegates/

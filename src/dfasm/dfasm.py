@@ -165,7 +165,7 @@ if sys.stdin.isatty():
         if repl:
             printHex(asm.code[previousIndex:])
             previousIndex = len(asm.code)
-    print()
+    print("")
 else:
     for line in sys.stdin:
         lineIndex += 1
@@ -177,7 +177,7 @@ else:
 
 if jit:
     virtBuf = libjit.VirtualBuffer.Create(asm.index)
-    asm.baseOffset = virtBuf.Address
+    asm.baseOffset = int(virtBuf.Pointer)
     asm.patchLabels()
     virtBuf.Write(System.Array[System.Byte](asm.code))
     func = libjit.JitFunction(virtBuf, getEntryPointOffset(asm))
