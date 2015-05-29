@@ -321,10 +321,18 @@ class MemoryOperand(Operand):
     def canWrite(self, asm):
         return self.displacement.canWrite(asm)
 
+    def isBasePointerPlusZero(self):
+        """ Returns True if this memory operand is either [ebp] or [bp]. """
+        # [ebp] does not exist; its slot is taken by [disp32].
+        # [ebp + disp8] does. Instructions on [ebp] must use single-
+        # byte displacement instead.
+        return self.addressRegister.index == registers["bp"].index \
+                and self.displacement.operandSize == size0
+
     @property
     def dataSize(self):
         """ Gets the number of bytes of data in this instruction. """
-        if self.addressRegister.index == 5 and self.displacement.operandSize == size0:
+        if self.isBasePointerPlusZero():
             return 1
         else:
             return self.displacement.dataSize
@@ -332,9 +340,8 @@ class MemoryOperand(Operand):
     @property
     def addressingMode(self):
         """ Gets the register operand's addressing mode. """
-        if self.displacement.operandSize == size8 or (self.addressRegister.index == 5 and self.displacement.operandSize == size0):
+        if self.displacement.operandSize == size8 or self.isBasePointerPlusZero():
             return "memoryByteOffset" # [register + disp8]
-            # Note: [ebp] does not exist (its slot is taken by [disp32]. [ebp + disp8] does.
         elif self.displacement.operandSize == size0:
             return "memory" # [register]
         else:
@@ -347,7 +354,7 @@ class MemoryOperand(Operand):
 
     def getData(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
-        if self.addressRegister.index == 5 and self.displacement.operandSize == size0:
+        if self.isBasePointerPlusZero():
             return [0x00]
         else:
             return self.displacement.getData(asm)
