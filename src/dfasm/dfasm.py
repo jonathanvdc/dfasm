@@ -212,7 +212,8 @@ elif output.endswith(".com"):
     entryPoint = getEntryPoint(asm)
     offset = getEntryPointOffset(asm)
     if offset != 0:
-        asm.code[0:0]  = [ 0xe9 ] + to32le(offset)
+        # 0xe9 is a relative JMP instruction.
+        asm.code[:0] = [0xe9] + to32le(offset)
     target = System.IO.FileStream(output, System.IO.FileMode.Create, System.IO.FileAccess.Write)
     target.Write(System.Array[System.Byte](asm.code), 0, len(asm.code))
     target.Dispose()
