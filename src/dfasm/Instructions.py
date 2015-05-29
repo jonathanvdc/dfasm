@@ -62,6 +62,16 @@ class Operand(object):
         """ Writes operand data not in the opcode itself to the assembler. """
         asm.write(self.getData(asm))
 
+    def canWrite(self):
+        """ Gets a boolean value that tells whether the operand can be written
+        now (True) or must be deferred (False). """
+        raise NotImplementedError
+
+    def cast(self):
+        """ "Casts" this operand to match the given size, by casting its
+        subexpressions. """
+        raise NotImplementedError
+
 class RegisterOperand(Operand):
     """ Defines a register operand. """
     def __init__(self, register):
@@ -88,7 +98,6 @@ class RegisterOperand(Operand):
         return 0
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return True
 
     def getData(self, asm):
@@ -101,9 +110,9 @@ class RegisterOperand(Operand):
         return "RegisterOperand(%r)" % self.register
 
 class BinaryOperand(Operand):
-    """ Represents a binary pseudo-operand.
-        The x86 ISA does not support these operands.
-        They are to be used soley for the assembler's intermediate representation. """
+    """ Represents a binary pseudo-operand. The x86 ISA does not support these
+    operands; they are to be used solely for the assembler's intermediate
+    representation. """
 
     def __init__(self, left, op, right):
         self.left = left
@@ -111,11 +120,9 @@ class BinaryOperand(Operand):
         self.right = right
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return BinaryOperand(self.left.cast(size), self.op, self.right.cast(size))
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return False
 
     def __str__(self):
@@ -152,7 +159,6 @@ class SymbolOperand(Operand):
         return self.operandSize.size
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.symbol.isDefined and (asm.baseOffset is not None or self.isRelative)
 
     def getSymbolOffset(self, asm):
@@ -175,7 +181,6 @@ class SymbolOperand(Operand):
         return SymbolOperand(self.symbol, self.operandSize, self.offset)
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return SymbolOperand(self.symbol, size, self.offset, self.relativeOffset)
 
     def __str__(self):
@@ -199,11 +204,9 @@ class ImmediateOperand(ImmediateOperandBase):
         return self.operandSize.size
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return True
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return ImmediateOperand(self.value, size)
 
     def toSigned(self):
@@ -257,12 +260,15 @@ class LabelOperandBase(ImmediateOperandBase):
         return self.makeSymbol(asm, self.placementIndex)
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.createOperand(asm).canWrite(asm)
 
     def makeRelative(self, offset):
         """ Turns this label operand into a relative operand. """
         return RelativeLabelOperand(offset, self.labelName, self.operandSize)
+
+    def makeSymbol(self, asm, offset):
+        """ Turns this label operand into a symbol operand. """
+        raise NotImplementedError
 
     @property
     def dataSize(self):
@@ -283,11 +289,9 @@ class RelativeLabelOperand(LabelOperandBase):
         self.operandSize = operandSize
 
     def makeSymbol(self, asm, offset):
-        """ Turns this label operand into a symbol operand. """
         return SymbolOperand(asm.getSymbol(self.labelName), self.operandSize, offset, self.offset)
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return RelativeLabelOperand(self.offset, self.labelName, size)
 
     def __repr__(self):
@@ -296,11 +300,9 @@ class RelativeLabelOperand(LabelOperandBase):
 class LabelOperand(LabelOperandBase):
     """ Describes an absolute label operand. """
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return LabelOperand(self.labelName, size)
 
     def makeSymbol(self, asm, offset):
-        """ Turns this label operand into a symbol operand. """
         return SymbolOperand(asm.getSymbol(self.labelName), self.operandSize, offset)
 
     def __repr__(self):
@@ -314,11 +316,9 @@ class MemoryOperand(Operand):
         self.operandSize = operandSize
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return MemoryOperand(self.addressRegister, self.displacement, size)
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.displacement.canWrite(asm)
 
     @property
@@ -374,11 +374,9 @@ class SIBMemoryOperand(Operand):
         self.operandSize = operandSize
 
     def canWrite(self, asm):
-        """ Gets a boolean value that tells whether the operand can be written now or must be deferred. """
         return self.displacement.canWrite(asm)
 
     def cast(self, size):
-        """ "Casts" this operand to match the given size. """
         return SIBMemoryOperand(self.baseRegister, self.indexRegister, self.indexShift, self.displacement, size)
 
     @property
