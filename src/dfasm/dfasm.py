@@ -148,7 +148,11 @@ if sys.stdin.isatty():
             break
 
         doc = libdiagnostics.SourceDocument(line, "line " + str(lineIndex))
-        lexed = lexAsm(doc)
+        try:
+            lexed = lexAsm(doc)
+        except libdiagnostics.DiagnosticsException as ex:
+            log.LogError(ex.Entry)
+            continue
         printDebug(lexed)
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         printDebug(instrs)
@@ -173,7 +177,11 @@ else:
     for line in sys.stdin:
         lineIndex += 1
         doc = libdiagnostics.SourceDocument(line, "line " + str(lineIndex))
-        lexed = lexAsm(doc)
+        try:
+            lexed = lexAsm(doc)
+        except libdiagnostics.DiagnosticsException as ex:
+            log.LogError(ex.Entry)
+            continue
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
             try:
