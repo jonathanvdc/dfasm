@@ -126,7 +126,7 @@ class BinaryOperand(Operand):
         return False
 
     def __str__(self):
-        return str(self.left) + " `" + self.op + "` " + str(self.right)
+        return "%s `%s` %s" % (self.left, self.op, self.right)
 
     def __repr__(self):
         return "BinaryOperand(%r, %r, %r)" % (self.left, self.op, self.right)
@@ -361,9 +361,9 @@ class MemoryOperand(Operand):
 
     def __str__(self):
         if self.displacement.operandSize == size0:
-            return "[" + str(self.addressRegister) + "]"
+            return "[%s]" % self.addressRegister
         else:
-            return "[" + str(self.addressRegister) + " + " + str(self.displacement) + "]"
+            return "[%s + %s]" % (self.addressRegister, self.displacement)
 
     def __repr__(self):
         return "DirectMemoryOperand(%r, %r, %r)" % (self.addressRegister, self.displacement, self.operandSize)
@@ -412,7 +412,7 @@ class SIBMemoryOperand(Operand):
         return [sibVal] + self.displacement.getData(asm)
 
     def __str__(self):
-        return "[" + str(self.baseRegister) + " + " + str(self.indexRegister) + " << " + str(self.indexShift) + " + " + str(self.displacement) + "]"
+        return "[%s + %s << %s + %s]" % (self.baseRegister, self.indexRegister, self.indexShift, self.displacement)
 
     def __repr__(self):
         return "SIBMemoryOperand(%r, %r, %r, %r, %r)" % (self.baseRegister, self.indexRegister, self.indexShift, self.displacement, self.operandSize)
