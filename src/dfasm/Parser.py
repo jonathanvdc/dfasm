@@ -245,14 +245,11 @@ class MemoryNode(object):
             [(rI, sI)] = indexRegisters
             return Instructions.SIBMemoryOperand(rB, rI, sI, disp, size8)
         elif len(indices) > 2:
-            raise DiagnosticsException("Invalid memory operand", "A memory operand contains at most two registers.", self.location)
+            raise DiagnosticsException("Invalid memory operand",
+                                       "A memory operand contains at most two registers.", self.location)
         else:
-<<<<<<< HEAD
-            raise ValueError("Bad memory operand.")
-=======
-            # XXX: is mov eax, [ebx * 4] (i.e. only an index register, no base) valid?
-            raise DiagnosticsException("Invalid memory operand", "Bad memory operand.", self.location)
->>>>>>> origin/master
+            raise DiagnosticsException("Invalid memory operand",
+                                       "Bad memory operand.", self.location)
 
     def __str__(self):
         return str(self.lbracket) + str(self.address) + str(self.rbracket)
