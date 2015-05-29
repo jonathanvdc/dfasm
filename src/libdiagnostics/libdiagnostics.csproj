@@ -48,6 +48,7 @@
     <Compile Include="ConsoleLog.cs" />
     <Compile Include="DefaultConsole.cs" />
     <Compile Include="DefaultConsoleStyle.cs" />
+    <Compile Include="DiagnosticsException.cs" />
     <Compile Include="ExtendedPalette.cs" />
     <Compile Include="IConsole.cs" />
     <Compile Include="IndirectConsole.cs" />

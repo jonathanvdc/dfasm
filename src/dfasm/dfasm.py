@@ -155,7 +155,10 @@ if sys.stdin.isatty():
         printDebug(repr(instrs))
 
         for item in instrs:
-            asm.process(item)
+            try:
+                asm.process(item)
+            except libdiagnostics.DiagnosticsException as ex:
+                log.LogError(ex.Entry)
     
         if debug:
             for item in filter(lambda x: isinstance(x, InstructionNode), instrs):
@@ -165,7 +168,7 @@ if sys.stdin.isatty():
         if repl:
             printHex(asm.code[previousIndex:])
             previousIndex = len(asm.code)
-    print()
+    print("")
 else:
     for line in sys.stdin:
         lineIndex += 1
@@ -173,11 +176,14 @@ else:
         lexed = lexAsm(doc)
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
-            asm.process(item)
+            try:
+                asm.process(item)
+            except libdiagnostics.DiagnosticsException as ex:
+                log.LogError(ex.Entry)
 
 if jit:
     virtBuf = libjit.VirtualBuffer.Create(asm.index)
-    asm.baseOffset = virtBuf.Address
+    asm.baseOffset = int(virtBuf.Pointer)
     asm.patchLabels()
     virtBuf.Write(System.Array[System.Byte](asm.code))
     func = libjit.JitFunction(virtBuf, getEntryPointOffset(asm))
