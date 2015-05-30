@@ -254,7 +254,8 @@ def writeShiftInstruction(name, extension, asm, args):
             asm.write([0xd1 if wordReg else 0xd0, modRM])
         else:
             asm.write([0xc1 if wordReg else 0xc0, modRM, v])
-    elif shiftArg is registers["cl"]:
+    elif isinstance(shiftArg, Instructions.RegisterOperand) \
+            and shiftArg.register is Instructions.registers["cl"]:
         asm.write([0xd3 if wordReg else 0xd2, modRM])
     else:
         raise ValueError("The second argument to a shift instruction must be an "
