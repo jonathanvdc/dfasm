@@ -38,7 +38,8 @@ namespace libdiagnostics
 
         #region WriteEntry
 
-        public void WriteEntry(string Header, Color HeaderColor, Color PrimaryColor, Color SecondaryColor, LogEntry Entry)
+        public void WriteEntry(string Header, Color HeaderColor, Color PrimaryColor,
+            Color SecondaryColor, LogEntry Entry)
         {
             if (!string.IsNullOrWhiteSpace(Header))
             {
@@ -55,7 +56,8 @@ namespace libdiagnostics
             WriteEntry("", BrightGreen, DimGreen, Entry);
         }
 
-        public void WriteBlockEntry(string Header, Color HeaderColor, Color PrimaryColor, Color SecondaryColor, LogEntry Entry)
+        public void WriteBlockEntry(string Header, Color HeaderColor, Color PrimaryColor,
+            Color SecondaryColor, LogEntry Entry)
         {
             WriteEntry(Header, HeaderColor, PrimaryColor, SecondaryColor, Entry);
             Console.WriteSeparator(2);
@@ -117,7 +119,8 @@ namespace libdiagnostics
         {
             get
             {
-                return StylePalette.MakeContrastColor(Console.Description.ForegroundColor, Console.Description.BackgroundColor);
+                return StylePalette.MakeContrastColor(Console.Description.ForegroundColor,
+                                                      Console.Description.BackgroundColor);
             }
         }
 

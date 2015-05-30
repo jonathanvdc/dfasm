@@ -21,7 +21,8 @@ namespace libjit
         /// <returns></returns>
         public static Type CreateDelegateType(Type returnType, params Type[] parameterTypes)
         {
-            // Borrowed from http://blog.bittercoder.com/2006/10/01/the-final-solution-for-generic-ironpython-delegates/
+            // Borrowed from:
+            // http://blog.bittercoder.com/2006/10/01/the-final-solution-for-generic-ironpython-delegates/
 
             AssemblyName assembly = new AssemblyName();
             assembly.Name = "DelegateAssembly";
@@ -36,8 +37,9 @@ namespace libjit
                     TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class |
                     TypeAttributes.AnsiClass | TypeAttributes.AutoClass, typeof(MulticastDelegate));
 
-            ConstructorBuilder constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.RTSpecialName | MethodAttributes.HideBySig | MethodAttributes.Public,
-                                                                                  CallingConventions.Standard, new Type[] { typeof(object), typeof(int) });
+            ConstructorBuilder constructorBuilder = typeBuilder.DefineConstructor(
+                MethodAttributes.RTSpecialName | MethodAttributes.HideBySig | MethodAttributes.Public,
+                 CallingConventions.Standard, new Type[] { typeof(object), typeof(int) });
             constructorBuilder.SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 
             MethodBuilder methodBuilder =

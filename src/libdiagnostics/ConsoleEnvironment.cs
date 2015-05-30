@@ -35,12 +35,14 @@ namespace libdiagnostics
 
         public static bool IsXTerminalIdentifier(string Identifier)
         {
-            return Identifier != null && (Identifier.Equals(XTermIdentifier, StringComparison.OrdinalIgnoreCase) || Identifier.StartsWith(XTermIdentifier + "-", StringComparison.OrdinalIgnoreCase));
+            return Identifier != null && (Identifier.Equals(XTermIdentifier, StringComparison.OrdinalIgnoreCase)
+                || Identifier.StartsWith(XTermIdentifier + "-", StringComparison.OrdinalIgnoreCase));
         }
 
         public static bool IsVTerminal(string Identifier)
         {
-            return Identifier != null && Identifier.StartsWith("vt", StringComparison.OrdinalIgnoreCase) && Identifier.Substring(2).All(char.IsDigit);
+            return Identifier != null && Identifier.StartsWith("vt", StringComparison.OrdinalIgnoreCase)
+                && Identifier.Substring(2).All(char.IsDigit);
         }
 
         static ConsoleEnvironment()

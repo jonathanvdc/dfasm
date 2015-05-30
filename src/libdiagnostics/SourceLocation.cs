@@ -77,7 +77,8 @@ namespace libdiagnostics
             return CreateSourceNodes(Document, gridPos, Length);
         }
 
-        public static IEnumerable<MarkupNode> CreateSourceNodes(SourceDocument doc, SourceGridPosition gridPos, int Length)
+        public static IEnumerable<MarkupNode> CreateSourceNodes(SourceDocument doc,
+            SourceGridPosition gridPos, int Length)
         {
             string lineText = doc.GetLine(gridPos.Line);
             int offset = gridPos.Offset;

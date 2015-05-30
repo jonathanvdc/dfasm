@@ -63,7 +63,8 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
         immArg = immArg.cast(size8)
     elif immArg.operandSize != size8:
         if not wordReg:
-            raise ValueError("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(memArg) + "'")
+            raise ValueError("Cannot use immediate larger than 8 bits (%s) "
+                             "with 8-bit register %s" % (immArg, memArg))
         immArg = immArg.cast(memArg.operandSize)
         
     shortImm = immArg.operandSize != memArg.operandSize
@@ -89,7 +90,8 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
 
     if regArg.operandSize != memArg.operandSize:
         if memArg.addressingMode == "register":
-            raise ValueError("Register size mismatch ('" + str(regArg) + "' and '" + str(memArg) + "') in '" + name + "' instruction.")
+            raise ValueError("Register size mismatch ('%s' and '%s') in '%s' "
+                             "instruction." % (regArg, memArg, name))
         else:
             memArg = memArg.cast(regArg.operandSize)
 
@@ -99,7 +101,8 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
         immArg = immArg.cast(size8)
     elif immArg.operandSize != size8:
         if not wordReg:
-            raise ValueError("Cannot use an immediate larger than 8 bits ('" + str(immArg) + "') with 8-bit register '" + str(regArg) + "'")
+            raise ValueError("Cannot use an immediate larger than 8 bits (%s) "
+                             "with 8-bit register '%s'." % (immArg, regArg))
         immArg = immArg.cast(memArg.operandSize)
         
     shortImm = immArg.operandSize != memArg.operandSize
@@ -153,7 +156,7 @@ def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
 def writeEnterInstruction(asm, args):
     if len(args) != 2:
         raise ValueError("'enter' takes precisely two arguments.")
-    if not isinstance(args[0], Instructions.ImmediateOperandBase) or not isinstance(args[1], Instructions.ImmediateOperandBase):
+    if not all(isinstance(arg, Instructions.ImmediateOperandBase) for arg in args):
         raise ValueError("'enter' must take two immediate arguments.")
     if args[0].operandSize > size16 or args[1].operandSize > size8:
         raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
@@ -176,9 +179,13 @@ def writeTestImmediateInstruction(asm, args):
     if len(args) != 2:
         raise ValueError("'test' takes precisely two operands.")
     
-    (memArg, immArg) = (args[0], args[1]) if isinstance(args[1], Instructions.ImmediateOperandBase) else (args[1], args[0])
+    isImm = lambda x: isinstance(x, Instructions.ImmediateOperandBase)
 
-    if not isinstance(immArg, Instructions.ImmediateOperandBase) or isinstance(memArg, Instructions.ImmediateOperandBase):
+    immArg, memArg = args
+    if isImm(memArg):
+        immArg, memArg = memArg, immArg
+
+    if not isImm(immArg) or isImm(memArg):
         raise ValueError("'test' must take precisely one immediate operand and one memory/register operand.")
 
     if immArg.operandSize > memArg.operandSize:
@@ -289,7 +296,9 @@ def defineThreeOpImmediateInstruction(name, opCode):
     return lambda asm, args: writeThreeOpImmediateInstruction(name, opCode, asm, args)
 
 def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
-    return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args)
+    return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder,
+                                                             immediateInstructionBuilder,
+                                                             asm, args)
 
 def defineReversedArgumentsInstruction(instructionBuilder):
     return lambda asm, args: instructionBuilder(asm, list(reversed(args)))
@@ -400,13 +409,14 @@ instructionBuilders = {
     "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
     "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
     "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
-    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True), writeTestImmediateInstruction),
+    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True),
+                                         writeTestImmediateInstruction),
     "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
-    "mul"   : defineUnaryInstruction("mul", 0xF6, 4),             # Note: Our mul syntax is *not* `mul eax, ecx`, but `mul ecx`, because things like `mul ebx, ecx` don't exist.
-                                                                  #       The same goes for div and idiv.
+    "mul"   : defineUnaryInstruction("mul", 0xF6, 4),
     "imul"  : defineAmbiguousArgumentCountInstruction({
                 1 : defineUnaryInstruction("imul", 0xF6, 5),
-                2 : defineAmbiguousInstruction(defineExtendedBinaryInstruction("imul", 0x0f, 0x2b), defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
+                2 : defineAmbiguousInstruction(defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
+                                               defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
                 3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2)
               }),
     "div"   : defineUnaryInstruction("div", 0xF6, 6),
@@ -458,12 +468,15 @@ class Assembler(object):
     def __init__(self, baseOffset = None, relocateAbsolutes = True):
         # A list of byte values representing the bytecode.
         self.code = []
-        self.baseOffset = baseOffset # The base offset is absolutely necessary for absolute things,
-                                     # but we may choose to provide it later on.
 
-        self.relocateAbsolutes = relocateAbsolutes # This boolean value tells symbol operands whether they should try
-                                                   # to fix up absolute offsets themselves, or report a pseudo-offset of 0,
-                                                   # making it the linker's problem.
+        # The base offset is absolutely necessary for absolute things,
+        # but we may choose to provide it later on.
+        self.baseOffset = baseOffset
+
+        # This boolean value tells symbol operands whether they should try
+        # to fix up absolute offsets themselves, or report a pseudo-offset of 0,
+        # making it the linker's problem.
+        self.relocateAbsolutes = relocateAbsolutes
 
         # A dictionary of symbols (these include labels).
         self.symbols = {}

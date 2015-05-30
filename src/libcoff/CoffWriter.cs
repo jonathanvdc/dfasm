@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 
 namespace libcoff
 {
-    // libcoff is a derivative work of http://www.codeproject.com/Articles/705281/An-x-assembler-with-register-allocation,
-    // licensed from Dávid Kocsis under the Code Project Open License (CPOL) (http://www.codeproject.com/info/cpol10.aspx)
+    // libcoff is a derivative work of
+    // http://www.codeproject.com/Articles/705281/An-x-assembler-with-register-allocation,
+    // licensed from Dávid Kocsis under the Code Project Open License (CPOL)
+    // (http://www.codeproject.com/info/cpol10.aspx)
 
     public static class CoffWriter
     {

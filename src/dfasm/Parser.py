@@ -184,7 +184,9 @@ class MemoryNode(object):
         elif isinstance(operand, Instructions.RegisterOperand):
             return 0
         else:
-            raise DiagnosticsException("Invalid memory operand", "Non-immediate SIB displacements are not supported.", self.location)
+            raise DiagnosticsException("Invalid memory operand",
+                                       "Non-immediate SIB displacements are not supported.",
+                                       self.location)
 
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
@@ -201,7 +203,9 @@ class MemoryNode(object):
 
                 # Disallow cases like "eax * ebx" and "2 << ebx".
                 if not isinstance(right, Instructions.ImmediateOperand):
-                    raise DiagnosticsException("Invalid memory operand", "'%s' is not allowed in a memory operand." % operand, self.location)
+                    raise DiagnosticsException("Invalid memory operand",
+                                               "'%s' is not allowed in a memory operand." % operand,
+                                               self.location)
                 
                 # Then, calculate the shift amount for (eax << k) or (eax * k).
                 shift = right.value
@@ -210,21 +214,31 @@ class MemoryNode(object):
                         factorToShift = {1: 0, 2: 1, 4: 2, 8: 3}
                         shift = factorToShift[shift]
                     except IndexError:
-                        raise DiagnosticsException("Invalid memory operand", "Valid multiplicands for memory operands are 1, 2, 4 and 8; got %d." % shift, self.location)
+                        raise DiagnosticsException("Invalid memory operand",
+                                                   "Valid multiplicands for memory operands are "
+                                                   "1, 2, 4 and 8; got %d." % shift,
+                                                   self.location)
                 
                 if not 0 <= shift <= 3:
-                    raise DiagnosticsException("Invalid memory operand", "Valid shift amounts for memory operands are 0 through 3; got %d." % shift, self.location)
+                    raise DiagnosticsException("Invalid memory operand",
+                                               "Valid shift amounts for memory operands are "
+                                               "0 through 3; got %d." % shift,
+                                               self.location)
                 return [(left.register, shift)]
                     
             elif operand.op == "plus":
                 return self.getIndexOperands(operand.left) + self.getIndexOperands(operand.right)
             elif operand.op == "minus":
                 if self.getIndexOperands(operand.right):
-                    raise DiagnosticsException("Invalid memory operand", "Subtraction of memory index operands is not allowed.", self.location)
+                    raise DiagnosticsException("Invalid memory operand",
+                                               "Subtraction of memory index operands is not allowed.",
+                                               self.location)
                 else:
                     return self.getIndexOperands(operand.left)
             else:
-                raise DiagnosticsException("Invalid memory operand", "'%s' is not allowed in a memory operand." % operand, self.location)
+                raise DiagnosticsException("Invalid memory operand",
+                                           "'%s' is not allowed in a memory operand." % operand,
+                                           self.location)
         return []
 
     def toOperand(self, asm):

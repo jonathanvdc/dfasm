@@ -108,7 +108,8 @@ namespace libjit
         /// <param name="flProtect"></param>
         /// <returns></returns>
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
+        public static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize,
+                                                 uint flAllocationType, uint flProtect);
 
         /// <summary>
         /// Frees a block of memory at the given address, of the given size,

@@ -88,7 +88,8 @@ namespace libjit
         /// <returns></returns>
         public T Invoke<T>(params object[] Arguments)
         {
-            var delegType = JitHelpers.CreateDelegateType(typeof(T), Arguments.Select(item => item.GetType()).ToArray());
+            var delegType = JitHelpers.CreateDelegateType(
+                typeof(T), Arguments.Select(item => item.GetType()).ToArray());
             var deleg = ToDelegate(delegType);
             return (T)deleg.DynamicInvoke(Arguments);
         }

@@ -49,22 +49,41 @@ namespace libcoff
             var align = Is64Bit ? SectionHeaderFlags.Align16Bytes : SectionHeaderFlags.Align4Bytes;
             var arch = Is64Bit ? MachineType.Amd64 : MachineType.I386;
 
-            var codeSection = new Section(".text", 0, SectionHeaderFlags.MemExecute | SectionHeaderFlags.MemRead | SectionHeaderFlags.CntCode | align, Code);
-            var dataSection = new Section(".data", 0, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntInitializedData | align);
-            var bssSection = new Section(".bss", 0, SectionHeaderFlags.MemRead | SectionHeaderFlags.MemWrite | SectionHeaderFlags.CntUninitializedData | align);
+            var codeSection = new Section(".text", 0, SectionHeaderFlags.MemExecute
+                                                    | SectionHeaderFlags.MemRead
+                                                    | SectionHeaderFlags.CntCode
+                                                    | align, Code);
+            var dataSection = new Section(".data", 0, SectionHeaderFlags.MemRead
+                                                    | SectionHeaderFlags.MemWrite
+                                                    | SectionHeaderFlags.CntInitializedData
+                                                    | align);
+            var bssSection = new Section(".bss", 0, SectionHeaderFlags.MemRead
+                                                  | SectionHeaderFlags.MemWrite
+                                                  | SectionHeaderFlags.CntUninitializedData
+                                                  | align);
 
             var sections = new Section[] { codeSection, dataSection, bssSection };
 
             var symbols = new List<Symbol>();
 
-            symbols.Add(new Symbol(".file", SymbolMode.Debug, 0, codeSection, new SymbolType(), StorageClass.File, new IAuxiliarySymbol[] { new AuxiliaryFileName("fake") }));
+            symbols.Add(new Symbol(".file", SymbolMode.Debug, 0, codeSection,
+                                   new SymbolType(), StorageClass.File,
+                                   new IAuxiliarySymbol[] {
+                                       new AuxiliaryFileName("fake")
+                                   }));
             for (int i = 0; i < sections.Length; i++)
 			{
                 var item = sections[i];
-			    symbols.Add(new Symbol(item.Name, SymbolMode.Normal, 0, item, new SymbolType(), StorageClass.Static, new IAuxiliarySymbol[] { new AuxiliarySectionDefinition(item, (ushort)(i + 1)) }));
+			    symbols.Add(new Symbol(item.Name, SymbolMode.Normal, 0, item,
+                                       new SymbolType(), StorageClass.Static,
+                                       new IAuxiliarySymbol[] {
+                                           new AuxiliarySectionDefinition(item, (ushort)(i + 1))
+                                       }));
 			}
 
-            symbols.Add(new Symbol("func", SymbolMode.Normal, 0, codeSection, new SymbolType(), StorageClass.External, new IAuxiliarySymbol[] { }));
+            symbols.Add(new Symbol("func", SymbolMode.Normal, 0, codeSection,
+                                   new SymbolType(), StorageClass.External,
+                                   new IAuxiliarySymbol[] { }));
             
             return new ObjectFile(arch, sections, symbols, 0);
         }

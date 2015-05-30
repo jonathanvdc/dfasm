@@ -412,7 +412,10 @@ class SIBMemoryOperand(Operand):
         return [sibVal] + self.displacement.getData(asm)
 
     def __str__(self):
-        return "[%s + %s << %s + %s]" % (self.baseRegister, self.indexRegister, self.indexShift, self.displacement)
+        return "[%s + %s << %s + %s]" % (self.baseRegister, self.indexRegister,
+                                         self.indexShift, self.displacement)
 
     def __repr__(self):
-        return "SIBMemoryOperand(%r, %r, %r, %r, %r)" % (self.baseRegister, self.indexRegister, self.indexShift, self.displacement, self.operandSize)
+        return "SIBMemoryOperand(%r, %r, %r, %r, %r)" % (self.baseRegister, self.indexRegister,
+                                                         self.indexShift, self.displacement,
+                                                         self.operandSize)

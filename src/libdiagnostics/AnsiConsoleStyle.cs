@@ -94,11 +94,13 @@ namespace libdiagnostics
             }
             if (!ResetAll)
             {
-                if (reset && (ForegroundConsoleColor != InitialStyle.ForegroundConsoleColor) || ForegroundConsoleColor != OldStyle.ForegroundConsoleColor)
+                if (reset && (ForegroundConsoleColor != InitialStyle.ForegroundConsoleColor)
+                    || ForegroundConsoleColor != OldStyle.ForegroundConsoleColor)
                 {
                     codes.Add("3" + colorIdents[ForegroundConsoleColor].ToString(CultureInfo.InvariantCulture));
                 }
-                if (reset && (BackgroundConsoleColor != InitialStyle.BackgroundConsoleColor) || BackgroundConsoleColor != OldStyle.BackgroundConsoleColor)
+                if (reset && (BackgroundConsoleColor != InitialStyle.BackgroundConsoleColor)
+                    || BackgroundConsoleColor != OldStyle.BackgroundConsoleColor)
                 {
                     codes.Add("4" + colorIdents[BackgroundConsoleColor].ToString(CultureInfo.InvariantCulture));
                 }

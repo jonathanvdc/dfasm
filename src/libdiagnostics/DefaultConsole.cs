@@ -10,7 +10,8 @@ namespace libdiagnostics
     public class DefaultConsole : ConsoleBase<DefaultConsoleStyle>
     {
         public DefaultConsole(int BufferWidth, Color ForegroundColor, Color BackgroundColor)
-            : base(new DefaultConsoleStyle(ForegroundColor.Over(DefaultForegroundColor), BackgroundColor.Over(DefaultBackgroundColor)))
+            : base(new DefaultConsoleStyle(ForegroundColor.Over(DefaultForegroundColor),
+                                           BackgroundColor.Over(DefaultBackgroundColor)))
         {
             desc = new ConsoleDescription("default", BufferWidth, 
                 InitialStyle.ForegroundColor, InitialStyle.BackgroundColor);

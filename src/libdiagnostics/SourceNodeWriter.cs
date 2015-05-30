@@ -26,7 +26,8 @@ namespace libdiagnostics
             }
             else
             {
-                return new Style(StyleConstants.CaretHighlightStyleName, Palette.MakeDimColor(new Color(0.0, 1.0, 0.0)), new Color());
+                return new Style(StyleConstants.CaretHighlightStyleName,
+                    Palette.MakeDimColor(new Color(0.0, 1.0, 0.0)), new Color());
             }
         }
 
@@ -38,20 +39,23 @@ namespace libdiagnostics
             }
             else
             {
-                return new Style(StyleConstants.CaretMarkerStyleName, Palette.MakeBrightColor(new Color(0.0, 1.0, 0.0)), new Color());
+                return new Style(StyleConstants.CaretMarkerStyleName,
+                    Palette.MakeBrightColor(new Color(0.0, 1.0, 0.0)), new Color());
             }
         }
 
         public void Write(IEnumerable<MarkupNode> Nodes, IConsole Console, IStylePalette Palette)
         {
-            var writer = new SourceNodeWriterState(Console, GetCaretMarkerStyle(Palette), GetCaretHighlightStyle(Palette), Indentation, MaxWidth, Palette);
+            var writer = new SourceNodeWriterState(Console, GetCaretMarkerStyle(Palette),
+                GetCaretHighlightStyle(Palette), Indentation, MaxWidth, Palette);
             writer.Write(Nodes);
         }
     }
 
     public class SourceNodeWriterState
     {
-        public SourceNodeWriterState(IConsole Console, Style CaretStyle, Style HighlightStyle, string Indentation, int MaxWidth, IStylePalette Palette)
+        public SourceNodeWriterState(IConsole Console, Style CaretStyle,
+            Style HighlightStyle, string Indentation, int MaxWidth, IStylePalette Palette)
         {
             this.Console = Console;
             this.CaretStyle = CaretStyle;
