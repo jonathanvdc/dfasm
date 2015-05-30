@@ -209,9 +209,6 @@ class ImmediateOperand(ImmediateOperandBase):
     def cast(self, size):
         return ImmediateOperand(self.value, size)
 
-    def toSigned(self):
-        return ImmediateOperand.createSigned(self.value)
-
     def toUnsigned(self):
         return ImmediateOperand.createUnsigned(self.value)
 
