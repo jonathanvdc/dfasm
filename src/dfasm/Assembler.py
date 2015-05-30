@@ -338,9 +338,6 @@ def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
 instructionBuilders = {
-    # This should come in handy when encoding instructions:
-    #     http://pdos.csail.mit.edu/6.828/2006/readings/i386/c17.htm
-
     "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
     "hlt"   : defineSimpleInstruction("hlt", [0xf4]),
     "nop"   : defineSimpleInstruction("nop", [0x90]),
@@ -461,7 +458,6 @@ instructionBuilders = {
     "jpo"   : defineConditionalJumpInstruction("jpo", 0xb),   # Jump if parity odd (PF == 0)
     "js"    : defineConditionalJumpInstruction("js", 0x8),    # Jump if sign (SF == 1)
     "jz"    : defineConditionalJumpInstruction("jz", 0x4),    # Jump if zero (ZF == 1)
-    # TODO: the literal entirety of x86.
 }
 
 class Assembler(object):
