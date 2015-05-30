@@ -45,6 +45,8 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     isWord = arg.operandSize > size8
     if isWord and byteOnly:
         raise ValueError("'%s' requires a byte argument." % name)
+    if isinstance(arg, ImmediateOperand) and byteOnly:
+        raise ValueError("'%s' requires a register argument." % name)
     argIndex = arg.operandIndex
 
     opcodeByte = opCode | (0x01 if isWord else 0x00)
