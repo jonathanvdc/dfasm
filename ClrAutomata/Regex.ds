@@ -8,6 +8,9 @@ namespace Automata
     /// </summary>
     public class RegexState
     {
+        /// <summary>
+        /// Creates a unique regex state.
+        /// </summary>
         public const this();
     }
 
