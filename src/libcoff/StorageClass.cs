@@ -8,7 +8,7 @@ namespace libcoff
 {
     public enum StorageClass : byte
     {
-        EndOfFunction = 0xFF,
+        EndOfFunction = 0xff,
         Null = 0,
         Automatic,
         External,

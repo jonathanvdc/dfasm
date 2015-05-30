@@ -110,10 +110,10 @@ namespace libcoff
             else if (Mode == PeCoffNameMode.OffsetToStringTable)
             {
                 var bytes = new byte[8];
-                bytes[4] = (byte)((Offset & 0x000000FF));
-                bytes[5] = (byte)((Offset & 0x0000FF00) >> 8);
-                bytes[6] = (byte)((Offset & 0x00FF0000) >> 16);
-                bytes[7] = (byte)((Offset & 0xFF000000) >> 24);
+                bytes[4] = (byte)((Offset & 0x000000ff));
+                bytes[5] = (byte)((Offset & 0x0000ff00) >> 8);
+                bytes[6] = (byte)((Offset & 0x00ff0000) >> 16);
+                bytes[7] = (byte)((Offset & 0xff000000) >> 24);
                 return bytes;
             }
 

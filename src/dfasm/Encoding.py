@@ -2,21 +2,21 @@ import functools
 
 def to8(x):
     """ Convert a given integer to a single-byte list. """
-    return [x & 0xFF]
+    return [x & 0xff]
 
 def to16le(x):
     """ Convert a given integer to its 16-bit little endian representation as
     a list of two bytes. """
-    return [(x >>  0) & 0xFF,
-            (x >>  8) & 0xFF]
+    return [(x >>  0) & 0xff,
+            (x >>  8) & 0xff]
 
 def to32le(x):
     """ Convert a given integer to its 32-bit little endian representation as
     a list of four bytes. """
-    return [(x >>  0) & 0xFF,
-            (x >>  8) & 0xFF,
-            (x >> 16) & 0xFF,
-            (x >> 24) & 0xFF]
+    return [(x >>  0) & 0xff,
+            (x >>  8) & 0xff,
+            (x >> 16) & 0xff,
+            (x >> 24) & 0xff]
 
 def relative(enc, here):
     """ Given an address encoding function and an offset, return a new

@@ -251,11 +251,11 @@ def writeShiftInstruction(name, extension, asm, args):
             raise ValueError("The immediate argument to a shift instruction cannot be larger than a byte.")
         v = shiftArg.value & 31
         if v == 1:
-            asm.write([0xD1 if wordReg else 0xD0, modRM])
+            asm.write([0xd1 if wordReg else 0xd0, modRM])
         else:
-            asm.write([0xC1 if wordReg else 0xC0, modRM, v])
+            asm.write([0xc1 if wordReg else 0xc0, modRM, v])
     elif shiftArg is registers["cl"]:
-        asm.write([0xD3 if wordReg else 0xD2, modRM])
+        asm.write([0xd3 if wordReg else 0xd2, modRM])
     else:
         raise ValueError("The second argument to a shift instruction must be an "
                         "immediate byte or the register CL.")
@@ -534,11 +534,11 @@ def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
     return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
 
 builders["imul"] = defineAmbiguousArgumentCountInstruction({
-                     1 : defineUnaryInstruction("imul", 0xF6, 5),
+                     1 : defineUnaryInstruction("imul", 0xf6, 5),
                      2 : defineAmbiguousInstruction(
                            defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
-                           defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
-                     3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2),
+                           defineThreeOpImmediateInstruction("imul", 0x6b >> 2)),
+                     3 : defineThreeOpImmediateInstruction("imul", 0x6b >> 2),
                    })
 
 ############################################################

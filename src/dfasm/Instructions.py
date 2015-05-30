@@ -47,9 +47,9 @@ registers = {
     "si"  : Register("si", 6, size16, False),
     "di"  : Register("di", 7, size16, False),
 
-    "cs"  : Register("cs", 0x2E, size16, True),
+    "cs"  : Register("cs", 0x2e, size16, True),
     "ss"  : Register("ss", 0x36, size16, True),
-    "ds"  : Register("ds", 0x3E, size16, True),
+    "ds"  : Register("ds", 0x3e, size16, True),
     "es"  : Register("es", 0x26, size16, True),
     "fs"  : Register("fs", 0x64, size16, True),
     "gs"  : Register("gs", 0x65, size16, True)
@@ -408,7 +408,7 @@ class SIBMemoryOperand(Operand):
 
     def getData(self, asm):
         """ Writes operand data not in the opcode itself to the assembler. """
-        sibVal = (self.baseRegister.index | self.indexRegister.index << 3 | self.indexShift << 6) & 0xFF
+        sibVal = (self.baseRegister.index | self.indexRegister.index << 3 | self.indexShift << 6) & 0xff
         return [sibVal] + self.displacement.getData(asm)
 
     def __str__(self):
