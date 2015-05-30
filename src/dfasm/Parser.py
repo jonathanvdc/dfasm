@@ -652,7 +652,7 @@ def parseDirective(tokens, dot):
             args = parseArgumentList(tokens)
             return IntegerDataDirective(dot, dirName, parseSize(dirName.contents), args)
     else:
-        raise ValueError("Unrecognized assembler directive '" + str(dot) + str(dirName) + "'")
+        raise ValueError("Unrecognized assembler directive '%s%s'" % (dot, dirName))
     
 
 def parseInstruction(tokens):

@@ -28,7 +28,7 @@ class LocalSymbol(object):
             if other.isDefined:
                 self.offset = other.offset
         elif other.isDefined:
-            raise ValueError("Symbol '" + str(self) + "' is defined more than once.")
+            raise ValueError("Symbol '%s' is defined more than once." % self)
         if other.isPublic:
             self.makePublic()
 

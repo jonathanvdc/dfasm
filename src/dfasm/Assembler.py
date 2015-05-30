@@ -4,7 +4,7 @@ import Symbols
 
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
-        raise ValueError("'" + name + "' does not take any arguments.")
+        raise ValueError("'%s' does not take any arguments." % name)
     asm.write(opCode)
 
 def createModRM(mode, regIndex, memIndex):
@@ -13,12 +13,12 @@ def createModRM(mode, regIndex, memIndex):
 
 def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     if len(args) != 1:
-        raise ValueError("'" + name + "' takes precisely one argument.")
+        raise ValueError("'%s' takes precisely one argument." % name)
     arg = args[0]
 
     isWord = arg.operandSize > size8
     if isWord and byteOnly:
-        raise ValueError("'" + name ++ "' requires a byte argument.")
+        raise ValueError("'%s' requires a byte argument." % name)
     argIndex = arg.operandIndex
 
     opcodeByte = opCode | (0x01 if isWord else 0x00)
@@ -29,17 +29,18 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
 
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
-        raise ValueError("'" + name + "' takes precisely two arguments.")
+        raise ValueError("'%s' takes precisely two arguments." % name)
     reverseArgs = args[0].addressingMode != "register"
     regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
     if reverseFlag != None:
         reverseArgs = reverseFlag
 
     if regArg.addressingMode != "register":
-        raise ValueError("'" + name + "' must take at least one register operand.")
+        raise ValueError("'%s' must take at least one register operand." % name)
 
     if needCast and memArg.operandSize != regArg.operandSize:
-        memArg = memArg.cast(regArg.operandSize) # Cast if necessary
+        # Cast if necessary
+        memArg = memArg.cast(regArg.operandSize)
 
     isWord = memArg.operandSize > size8
     regIndex = regArg.operandIndex
@@ -53,7 +54,7 @@ def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag
 
 def writeBinaryImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2:
-        raise ValueError("'" + name + "' takes precisely two arguments.")
+        raise ValueError("'%s' takes precisely two arguments." % name)
 
     memArg, immArg = args[0], args[1]
 
@@ -77,7 +78,7 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
 
 def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2 and len(args) != 3:
-        raise ValueError("'" + name + "' takes either two or three arguments.")
+        raise ValueError("'%s' takes either two or three arguments." % name)
 
     if len(args) == 2:
         args = [ args[0], args[0], args[1] ] # transform `imul eax,      10`
@@ -86,7 +87,8 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     regArg, memArg, immArg = args[0], args[1], args[2]
 
     if regArg.addressingMode != "register":
-        raise ValueError("'" + name + "' instruction must have a register operand as its first argument.")
+        raise ValueError("'%s' instruction must have a register operand "
+                         "as its first argument." % name)
 
     if regArg.operandSize != memArg.operandSize:
         if memArg.addressingMode == "register":
@@ -143,7 +145,7 @@ def writePushPopRegisterInstruction(regOpCode, asm, arg):
 
 def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
     if len(args) != 1:
-        raise ValueError("'" + name + "' takes precisely one argument.")
+        raise ValueError("'%s' takes precisely one argument." % name)
 
     arg = args[0]
 
@@ -208,7 +210,7 @@ def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
 
 def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
     if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise ValueError("'" + name + "' takes precisely one immediate operand.")
+        raise ValueError("'%s' takes precisely one immediate operand." % name)
 
     relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
 
