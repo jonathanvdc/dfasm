@@ -2,10 +2,36 @@ from Parser import *
 from Encoding import *
 import Symbols
 
+builders = {}
+
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
         raise ValueError("'%s' does not take any arguments." % name)
     asm.write(opCode)
+
+def defineSimpleInstruction(name, opCode):
+    return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
+
+builders["pause"] = defineSimpleInstruction("pause", [0xf3, 0x90])
+builders["hlt"]   = defineSimpleInstruction("hlt",   [0xf4])
+builders["nop"]   = defineSimpleInstruction("nop",   [0x90])
+builders["clc"]   = defineSimpleInstruction("clc",   [0xf8])
+builders["cld"]   = defineSimpleInstruction("cld",   [0xfc])
+builders["cli"]   = defineSimpleInstruction("cli",   [0xfa])
+builders["cmc"]   = defineSimpleInstruction("cmc",   [0xf5])
+builders["clts"]  = defineSimpleInstruction("clts",  [0x0f, 0x06])
+builders["stc"]   = defineSimpleInstruction("stc",   [0xf9])
+builders["std"]   = defineSimpleInstruction("std",   [0xfd])
+builders["sti"]   = defineSimpleInstruction("sti",   [0xfb])
+builders["sahf"]  = defineSimpleInstruction("sahf",  [0x9e])
+builders["lahf"]  = defineSimpleInstruction("lahf",  [0x9f])
+builders["lock"]  = defineSimpleInstruction("lock",  [0xf0])
+# Same mnemonic, apparently
+builders["iret"]  = defineSimpleInstruction("iret",  [0xcf])
+builders["iretd"] = defineSimpleInstruction("iretd", [0xcf])
+builders["leave"] = defineSimpleInstruction("leave", [0xc9])
+builders["pusha"] = defineSimpleInstruction("pusha", [0x60])
+builders["popa"]  = defineSimpleInstruction("popa",  [0x61])
 
 def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
@@ -276,9 +302,6 @@ def writeJumpInstruction(asm, args):
 def definePrefixedInstruction(prefix, instructionBuilder):
     return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
 
-def defineSimpleInstruction(name, opCode):
-    return lambda asm, args: writeSimpleInstruction(name, opCode, asm, args)
-
 def defineUnaryInstruction(name, opCode, extension):
     return lambda asm, args: writeUnaryInstruction(name, opCode, extension, asm, args)
 
@@ -337,27 +360,7 @@ addressingModeEncodings = {
 def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
-builders = {}
-builders["pause"] = defineSimpleInstruction("pause", [0xf3, 0x90])
-builders["hlt"]   = defineSimpleInstruction("hlt", [0xf4])
-builders["nop"]   = defineSimpleInstruction("nop", [0x90])
-builders["clc"]   = defineSimpleInstruction("clc", [0xf8])
-builders["cld"]   = defineSimpleInstruction("cld", [0xfc])
-builders["cli"]   = defineSimpleInstruction("cli", [0xfa])
-builders["cmc"]   = defineSimpleInstruction("cmc", [0xf5])
-builders["clts"]  = defineSimpleInstruction("clts", [0x0f, 0x06])
-builders["stc"]   = defineSimpleInstruction("stc", [0xf9])
-builders["std"]   = defineSimpleInstruction("std", [0xfd])
-builders["sti"]   = defineSimpleInstruction("sti", [0xfb])
-builders["sahf"]  = defineSimpleInstruction("sahf", [0x9e])
-builders["lahf"]  = defineSimpleInstruction("lahf", [0x9f])
-builders["lock"]  = defineSimpleInstruction("lock", [0xf0])
-builders["iret"]  = defineSimpleInstruction("iret", [0xcf])
-builders["iretd"] = defineSimpleInstruction("iretd", [0xcf]) # Same mnemonic, apparently
 builders["ret"]   = writeRetInstruction
-builders["leave"] = defineSimpleInstruction("leave", [0xc9])
-builders["pusha"] = defineSimpleInstruction("pusha", [0x60])
-builders["popa"]  = defineSimpleInstruction("popa", [0x61])
 builders["enter"] = writeEnterInstruction
 builders["push"]  = definePushPopInstruction("push", 0xa, 0xff, 0x6)
 builders["pop"]   = definePushPopInstruction("pop", 0xb, 0x8f, 0x0)
