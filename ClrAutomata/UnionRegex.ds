@@ -3,18 +3,31 @@ using System.Collections.Generic;
 
 namespace Automata
 {
+    /// <summary>
+    /// Defines a regex type that is the union of two other regex.
+    /// </summary>
     public struct UnionRegex : IRegex
     {
         public const this(set IRegex Left, set IRegex Right);
 
-        public IRegex Left;
-        public IRegex Right;
+        public IRegex Left { const get; private set; }
+        public IRegex Right { const get; private set; }
 
         public const string ToString()
         {
             return Left.ToString() + "+" + Right.ToString();
         }
 
+        /// <summary>
+        /// Creates an epsilon-nfa for this union regex.
+        /// The construction is as follows:
+        ///   * Automata are constructed for the left and right operands of this union operation.
+        ///   * These automata are "merged":
+        ///     * A new start state is created, with epsilon-transitions going out
+        ///       to the left and right automata.
+        ///     * The accepting states of the resulting automaton is union of the
+        ///       accepting states of the left and right operands' automata.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
             var startState = new RegexState();

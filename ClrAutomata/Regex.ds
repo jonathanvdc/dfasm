@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Automata
 {
+    /// <summary>
+    /// Defines a regex state, which is used in conjunction with reference equality.
+    /// </summary>
     public class RegexState
     {
         public const this();
@@ -13,23 +16,45 @@ namespace Automata
     /// </summary>
     public interface IRegex
     {
+        /// <summary>
+        /// Constructs an epsilon-nfa for this regex.
+        /// </summary>
         const ENFAutomaton<RegexState, char> ToENFAutomaton();
+        /// <summary>
+        /// Gets this regex's string representation.
+        /// </summary>
         const string ToString();
     }
 
+    /// <summary>
+    /// Defines a literal regex, which is a regex that matches a single symbol.
+    /// </summary>
     public class LiteralRegex : IRegex
     {
         alias TransitionTable = TransitionMap<RegexState, Optional<char>, StateSet<RegexState>>;
 
+        /// <summary>
+        /// Creates a literal regex for the given symbol.
+        /// </summary>
         public const this(set char Literal);
 
-        public char Literal;
+        /// <summary>
+        /// Gets the literal regex's literal or symbol.
+        /// </summary>
+        public char Literal { const get; private set; }
 
         public const string ToString()
         {
             return (string)Literal;
         }
 
+        /// <summary>
+        /// Constructs an epsilon-nfa for this regex.
+        /// The construction is as follows:
+        ///    start literal end.
+        /// where 'start' is the initial state, 'end' is an accepting state,
+        /// and 'literal' is this regex' literal.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
             var startState = new RegexState();
@@ -41,6 +66,9 @@ namespace Automata
         }
     }
 
+    /// <summary>
+    /// Defines an epsilon regex, which matches the empty string.
+    /// </summary>
     public static class EpsilonRegex : IRegex
     {
         alias TransitionTable = TransitionMap<RegexState, Optional<char>, StateSet<RegexState>>;
@@ -50,6 +78,13 @@ namespace Automata
             return "\\e";
         }
 
+        /// <summary>
+        /// Constructs an epsilon-nfa for this regex.
+        /// The construction is as follows:
+        ///    start -> end.
+        /// where 'start' is the initial state, 'end' is an accepting state,
+        /// and '->' is an epsilon-transition.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
             var startState = new RegexState();
@@ -61,6 +96,9 @@ namespace Automata
         }
     }
 
+    /// <summary>
+    /// Defines a phi regex, which matches nothing.
+    /// </summary>
     public static class PhiRegex : IRegex
     {
         alias TransitionTable = TransitionMap<RegexState, Optional<char>, StateSet<RegexState>>;
@@ -70,6 +108,14 @@ namespace Automata
             return "\\p";
         }
 
+
+        /// <summary>
+        /// Constructs an epsilon-nfa for this regex.
+        /// The construction is as follows:
+        ///    start.
+        /// where 'start' is the initial state. There are no transitions, and no
+        /// accepting states.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
             var startState = new RegexState();

@@ -3,12 +3,25 @@ using System.Collections.Generic;
 
 namespace Automata
 {
+    /// <summary>
+    /// A regular expression that represents the concatenation of two other regular
+    /// expressions.
+    /// </summary>
     public struct ConcatRegex : IRegex
     {
+        /// <summary>
+        /// Creates a new concat regex for the given operands.
+        /// </summary>
         public const this(set IRegex Left, set IRegex Right);
 
-        public IRegex Left;
-        public IRegex Right;
+        /// <summary>
+        /// Gets the concat regex's left operand.
+        /// </summary>
+        public IRegex Left { const get; private set; }
+        /// <summary>
+        /// Gets the concat regex's right operand.
+        /// </summary>
+        public IRegex Right { const get; private set; }
 
         public const string ToString()
         {
@@ -26,8 +39,23 @@ namespace Automata
             return result;
         }
 
+        /// <summary>
+        /// Creates an epsilon-nfa for this concatenation regex.
+        /// The construction is as follows:
+        ///   * Automata are constructed for the left and right operands of this concat operation.
+        ///   * These automata are "merged":
+        ///     * The start state of the resulting automaton is the start state
+        ///       of the left operand's automaton.
+        ///     * The accepting states of the resulting automaton is the set of accepting
+        ///       states of the right operand's automaton.
+        ///   * For each accepting state in the left automaton, an epsilon-transition
+        ///     is added to the resulting automaton that starts at said accepting
+        ///     state and points to the right automaton's intial state.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
+            // NOTE: default(Optional<char>) indicates an epsilon-transition.
+
             var leftAutomaton = Left.ToENFAutomaton();
             var rightAutomaton = Right.ToENFAutomaton();
 

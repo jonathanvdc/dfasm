@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace Automata
 {
+    /// <summary>
+    /// Represents a DFA "handle", which is a convenience object that makes
+    /// interacting with DFAs easier.
+    /// </summary>
     public class DFAHandle
     {
         public const this(set DFAutomaton<int, char> Automaton)
@@ -19,12 +23,19 @@ namespace Automata
             return new DFAState(this, Automaton.StartState, false);
         }
 
+        /// <summary>
+        /// Optimizes this handle's underlying DFA, and returns a handle to said
+        /// optimized DFA.
+        /// </summary>
         public const DFAHandle Optimize()
         {
             return new DFAHandle(Interop.IndexAutomaton<StateSet<int>>(Automaton.Optimize()));
         }
     }
 
+    /// <summary>
+    /// Represents a DFA in a specific, possibly invalid, state.
+    /// </summary>
     public struct DFAState
     {
         public const this(set DFAHandle Automaton, set int state, set bool isInvalid);
@@ -66,6 +77,10 @@ namespace Automata
         private bool isInvalid;
     }
 
+    /// <summary>
+    /// A closure object that provides a renaming function.
+    /// This is equivalent to a lambda that captures the 'indices' dictionary.
+    /// </summary>
     public class IndexAutomatonClosure<T>
         where T : object
     {
@@ -89,6 +104,9 @@ namespace Automata
         }
     }
 
+    /// <summary>
+    /// The automata interop class.
+    /// </summary>
     public static class Interop
     {
         private const T Id<T>(T Value)
@@ -96,6 +114,9 @@ namespace Automata
             return Value;
         }
 
+        /// <summary>
+        /// Converts any automaton to an indexed automaton.
+        /// </summary>
         public const DFAutomaton<int, char> IndexAutomaton<T>(DFAutomaton<T, char> Automaton)
             where T : object
         {
@@ -103,6 +124,9 @@ namespace Automata
             return Automaton.Rename<int, char>(closure.Index, Id<char>);
         }
 
+        /// <summary>
+        /// Compiles the given regex to an indexed DFA handle.
+        /// </summary>
         public const DFAHandle CompileRegex(string Regex)
         {
             var regex = RegexParser.ParseRegex(Regex);

@@ -12,18 +12,40 @@ namespace Automata
     {
         alias TransitionTable = TransitionMap<TState, TChar, TState>;
 
+        /// <summary>
+        /// Creates a deterministic finite automaton based on the given start
+        /// state, set of accepting states, and transition function.
+        /// </summary>
         public const this(set TState StartState,
             set StateSet<TState> AcceptingStates,
             set TransitionTable TransitionFunction);
 
+        /// <summary>
+        /// Gets this automaton's start state.
+        /// </summary>
         public TState StartState { const get; private set; }
+        /// <summary>
+        /// Gets this automaton's set of accepting states.
+        /// </summary>
         public StateSet<TState> AcceptingStates { const get; private set; }
+        /// <summary>
+        /// Gets this automaton's transition function.
+        /// </summary>
         public TransitionTable TransitionFunction { const get; private set; }
 
+        /// <summary>
+        /// Applies the automaton's transition function to the given state and
+        /// symbol.
+        /// </summary>
         public const TState PerformTransition(TState State, TChar Character)
         {
             return TransitionFunction[State, Character];
         }
+
+        /// <summary>
+        /// Applies the automaton's extended transition function to the given state and
+        /// string of symbols.
+        /// </summary>
         public const TState PerformExtendedTransition(TState State, [TChar] Characters)
         {
             var result = State;
@@ -34,6 +56,9 @@ namespace Automata
             return result;
         }
 
+        /// <summary>
+        /// Renames this automaton with the given state and character renamer.
+        /// </summary>
         public const DFAutomaton<TNState, TNChar> Rename<TNState, TNChar>(TNState(TState) StateRenamer, TNChar(TChar) CharRenamer)
         {
             TNState newStart = StateRenamer(StartState);
@@ -52,6 +77,9 @@ namespace Automata
             return new DFAutomaton<TNState, TNChar>(newStart, newAccept, newTransMap);
         }
 
+        /// <summary>
+        /// Gets the set of all states in this automaton.
+        /// </summary>
         public const StateSet<TState> GetStates()
         {
             var results = new StateSet<TState>();
@@ -64,6 +92,9 @@ namespace Automata
             return results;
         }
 
+        /// <summary>
+        /// Gets this automaton's alphabet, as a set of characters.
+        /// </summary>
         public const StateSet<TChar> GetAlphabet()
         {
             var results = new StateSet<TChar>();
@@ -75,16 +106,26 @@ namespace Automata
             return results;
         }
 
+        /// <summary>
+        /// Finds out if the given state is an accepting state.
+        /// </summary>
         public const bool IsAcceptingState(TState State)
         {
             return AcceptingStates.Contains(State);
         }
 
+        /// <summary>
+        /// Checks if this automaton accepts the given string of symbols.
+        /// </summary>
         public const bool Accepts([TChar] Characters)
         {
             return IsAcceptingState(PerformExtendedTransition(StartState, Characters));
         }
 
+        /// <summary>
+        /// Performs the table-filling algorithm on this automaton, and
+        /// returns the resulting partition of equivalent states.
+        /// </summary>
         public const Dictionary<TState, StateSet<TState>> TFAPartition()
         {
             var states = GetStates();
@@ -140,8 +181,9 @@ namespace Automata
                 {
                     var firstSet = partition[ab.Key];
                     var secondSet = partition[ab.Value];
-                    firstSet.UnionWith(secondSet); // <-- Evil mutable sets right here.
-                    partition[ab.Key] = firstSet;
+                    firstSet.UnionWith(secondSet);  // <-- Evil mutable sets right here.
+                    partition[ab.Key] = firstSet;   // The first parition set is changed in-place.
+                                                    // ^ This is for readability only.
                     partition[ab.Value] = firstSet; // Set second key to unified set
                 }
             }
@@ -149,6 +191,9 @@ namespace Automata
             return partition;
         }
 
+        /// <summary>
+        /// Gets the set of all reachable states in this automaton.
+        /// </summary>
         public const StateSet<TState> ReachableStates()
         {
             var todo = new StateSet<TState>(StartState);
@@ -168,6 +213,12 @@ namespace Automata
             return reachable;
         }
 
+        /// <summary>
+        /// Optimizes this automaton. First, all reachable states are detected.
+        /// Then, the TFA is applied to these reachable states, and all
+        /// equivalent states are merged. A new automaton is constructed based on
+        /// these merged states, and then returned.
+        /// </summary>
         public const DFAutomaton<StateSet<TState>, TChar> Optimize()
         {
             var reachable = ReachableStates();
@@ -200,21 +251,35 @@ namespace Automata
                 partition[StartState], final, optimalTable);
         }
 
-        private static KeyValuePair<TState, bool> TagTrue(TState State)
+        /// <summary>
+        /// Helper function that creates a key-value pair that has the given
+        /// key, and a value of 'true'.
+        /// </summary>
+        private static const KeyValuePair<TState, bool> TagTrue(TState State)
         {
             return new KeyValuePair<TState, bool>(State, true);
         }
 
-        private static KeyValuePair<TState, bool> TagFalse(TState State)
+        /// <summary>
+        /// Helper function that creates a key-value pair that has the given
+        /// key, and a value of 'false'.
+        /// </summary>
+        private static const KeyValuePair<TState, bool> TagFalse(TState State)
         {
             return new KeyValuePair<TState, bool>(State, false);
         }
 
-        private static TChar Id(TChar Value)
+        /// <summary>
+        /// Helper function that returns the given value.
+        /// </summary>
+        private static const TChar Id(TChar Value)
         {
             return Value;
         }
 
+        /// <summary>
+        /// Checks if this automaton is equivalent to the given other automaton.
+        /// </summary>
         public const bool EquivalentTo(DFAutomaton<TState, TChar> other)
         {
             var taggedThis  = Rename<KeyValuePair<TState, bool>, TChar>(TagFalse, Id);

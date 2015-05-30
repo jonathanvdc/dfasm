@@ -3,17 +3,39 @@ using System.Collections.Generic;
 
 namespace Automata
 {
+    /// <summary>
+    /// Defines a regex type that represents the closure of a given regex,
+    /// which matches the language of said regex zero or more times.
+    /// </summary>
     public struct ClosureRegex : IRegex
     {
+        /// <summary>
+        /// Creates a new closure regex from the given regex.
+        /// </summary>
         public const this(set IRegex Regex);
 
-        public IRegex Regex;
+        /// <summary>
+        /// Gets the inner regex.
+        /// </summary>
+        public IRegex Regex { const get; private set; }
 
         public const string ToString()
         {
             return "(" + Regex.ToString() + ")" + "*";
         }
 
+        /// <summary>
+        /// Creates an epsilon-nfa for this closure regex.
+        /// The construction is as follows:
+        ///   * An automaton is constructed for the closure regex' inner regex.
+        ///   * A new start state and a single accepting state are created.
+        ///   * An automaton is created that consists of:
+        ///     * The inner regex' automaton
+        ///     * The new start and accepting states
+        ///     * epsilon transitions that connect the inner automaton's start and
+        ///       end states with the new automaton's start and end states.
+        ///       Also, a "loop" is created to facilitate the closure.
+        /// </summary>
         public const ENFAutomaton<RegexState, char> ToENFAutomaton()
         {
             var innerAutomaton = Regex.ToENFAutomaton();

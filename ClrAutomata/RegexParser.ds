@@ -5,6 +5,9 @@ using System.Text;
 
 namespace Automata
 {
+    /// <summary>
+    /// A sequential parser type for string "streams".
+    /// </summary>
     public class StringParser
     {
         public const this(set string val, set int index);

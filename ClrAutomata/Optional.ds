@@ -1,14 +1,30 @@
 namespace Automata
 {
+    /// <summary>
+    /// Defines a strongly-typed "optional" or "maybe" type.
+    /// </summary>
     public struct Optional<T>
         where T : object
     {
+        /// <summary>
+        /// Creates a new optional instance from the given value.
+        /// </summary>
         public const this(set T Value) { HasValue = true; }
 
-        public bool HasValue;
-        public T Value;
+        /// <summary>
+        /// Gets a boolean value that indicates if this optional object has a value.
+        /// </summary>
+        public bool HasValue { const get; private set; }
+        /// <summary>
+        /// Gets the optional instance's value, if any.
+        /// </summary>
+        public T Value { const get; private set; }
 
-        public const Optional<TNew> Rename<TNew>(TNew(T) Function)
+        /// <summary>
+        /// Converts this optional instance to another type using the given conversion
+        /// function.
+        /// </summary>
+        public const Optional<TNew> Convert<TNew>(TNew(T) Function)
         {
             if (HasValue)
             {
@@ -20,6 +36,10 @@ namespace Automata
             }
         }
 
+        /// <summary>
+        /// Finds out if this optional object equals the given other optional
+        /// object.
+        /// </summary>
         public const bool Equals(Optional<T> Other)
         {
             if (HasValue)
@@ -29,6 +49,10 @@ namespace Automata
             else return !Other.HasValue;
         }
 
+        /// <summary>
+        /// Finds out if this optional object equals the given other optional
+        /// object, if the latter is indeed an optional instance.
+        /// </summary>
         public override const bool Equals(object Other)
         {
             if (Other is Optional<T>)
