@@ -38,6 +38,9 @@
     <Compile Include="Assembler.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Builders.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Encoding.py">
       <SubType>Code</SubType>
     </Compile>
