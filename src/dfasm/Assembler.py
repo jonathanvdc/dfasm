@@ -40,6 +40,16 @@ builders["popa"]  = defineSimpleInstruction("popa",  [0x61])
 ### Unary instructions
 ############################################################
 
+addressingModeEncodings = {
+    "memory" : 0,
+    "memoryByteOffset" : 1,
+    "memoryWordOffset" : 2,
+    "register" : 3,
+}
+
+def encodeAddressingMode(mode):
+    return addressingModeEncodings[mode]
+
 def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
     return encodeAddressingMode(mode) << 6 | regIndex << 3 | memIndex
@@ -52,7 +62,7 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     isWord = arg.operandSize > size8
     if isWord and byteOnly:
         raise ValueError("'%s' requires a byte argument." % name)
-    if isinstance(arg, ImmediateOperand) and byteOnly:
+    if isinstance(arg, Instructions.ImmediateOperandBase) and byteOnly:
         raise ValueError("'%s' requires a register argument." % name)
     argIndex = arg.operandIndex
 
@@ -76,6 +86,13 @@ builders["idiv"] = defineUnaryInstruction("idiv", 0xf6, 7)
 ############################################################
 ### setCC instructions
 ############################################################
+
+def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
+    asm.write([prefix])
+    instructionBuilder(asm, args)
+
+def definePrefixedInstruction(prefix, instructionBuilder):
+    return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
 
 def defineSetCCInstruction(name, byte):
     def write(asm, args):
@@ -114,6 +131,10 @@ builders["setng"] = defineSetCCInstruction("setng", 0x9e)
 builders["setg"]  = defineSetCCInstruction("setg",  0x9f)
 builders["setnl"] = defineSetCCInstruction("setnl", 0x9f)
 
+############################################################
+### Binary instructions
+############################################################
+
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
         raise ValueError("'%s' takes precisely two arguments." % name)
@@ -139,6 +160,12 @@ def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag
     asm.write([opcodeByte, operandsByte])
     asm.writeArgument(memArg)
 
+def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
+    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
+
+def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, reverseFlag = None):
+    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast, reverseFlag))
+
 def writeBinaryImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2:
         raise ValueError("'%s' takes precisely two arguments." % name)
@@ -163,15 +190,313 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
     asm.writeArgument(memArg)
     asm.writeArgument(immArg)
 
+def defineBinaryImmediateInstruction(name, opCode):
+    return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
+
+builders["xchg"]  = defineBinaryInstruction("xchg", 0x21, True, False)
+builders["movsx"] = defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False)
+builders["movzx"] = defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False)
+
+def defineReversedArgumentsInstruction(instructionBuilder):
+    return lambda asm, args: instructionBuilder(asm, list(reversed(args)))
+
+builders["lea"] = defineReversedArgumentsInstruction(
+                      defineBinaryInstruction("lea", 0x23))
+
+############################################################
+### Ambiguous binary instructions
+############################################################
+
+def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
+    return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder,
+                                                             immediateInstructionBuilder,
+                                                             asm, args)
+
+def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args):
+    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperandBase):
+        immediateInstructionBuilder(asm, args)
+    else:
+        registerInstructionBuilder(asm, args)
+
+def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
+    if opCode is None:
+        opCode = immOpCode << 1
+    binDef = defineBinaryInstruction(name, opCode)
+    immDef = defineBinaryImmediateInstruction(name, immOpCode)
+    return defineAmbiguousInstruction(binDef, immDef)
+
+builders["add"]   = defineAmbiguousBinaryInstruction("add", 0x00)
+builders["or"]    = defineAmbiguousBinaryInstruction("or",  0x01)
+builders["adc"]   = defineAmbiguousBinaryInstruction("adc", 0x02)
+builders["sbb"]   = defineAmbiguousBinaryInstruction("sbb", 0x03)
+builders["and"]   = defineAmbiguousBinaryInstruction("and", 0x04)
+builders["sub"]   = defineAmbiguousBinaryInstruction("sub", 0x05)
+builders["xor"]   = defineAmbiguousBinaryInstruction("xor", 0x06)
+builders["cmp"]   = defineAmbiguousBinaryInstruction("cmp", 0x07)
+
+############################################################
+### Shift instructions
+############################################################
+
+def writeShiftInstruction(name, extension, asm, args):
+    if len(args) != 2:
+        raise ValueError("'%s' takes precisely two operands." % name)
+
+    memArg, shiftArg = args
+    wordReg = memArg.operandSize > size8
+    modRM = createModRM(memArg.addressingMode, extension, memArg.operandIndex)
+
+    if isinstance(shiftArg, Instructions.ImmediateOperandBase):
+        if shiftArg.operandSize > size8:
+            raise ValueError("The immediate argument to a shift instruction cannot be larger than a byte.")
+        v = shiftArg.value & 31
+        if v == 1:
+            asm.write([0xD1 if wordReg else 0xD0, modRM])
+        else:
+            asm.write([0xC1 if wordReg else 0xC0, modRM, v])
+    elif shiftArg is registers["cl"]:
+        asm.write([0xD3 if wordReg else 0xD2, modRM])
+    else:
+        raise ValueError("The second argument to a shift instruction must be an "
+                        "immediate byte or the register CL.")
+    asm.writeArgument(memArg)
+
+def defineShiftInstruction(name, extension):
+    return lambda asm, args: writeShiftInstruction(name, extension, asm, args)
+
+builders["sal"]   = defineShiftInstruction("sal", 4)
+builders["sar"]   = defineShiftInstruction("sar", 7)
+builders["shl"]   = defineShiftInstruction("shl", 4)
+builders["shr"]   = defineShiftInstruction("shr", 5)
+
+############################################################
+### Jump instructions
+############################################################
+
+def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
+    if arg.makeRelative(shortOffset).operandSize <= size8:
+        return arg.makeSymbol(asm, asm.index).makeRelative(shortOffset).cast(size8)
+    else:
+        return arg.makeSymbol(asm, asm.index).makeRelative(longOffset).cast(size32)
+
+def writeCallInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise ValueError("'call' takes precisely one immediate operand.")
+    asm.write([0xe8])
+    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
+
+builders["call"] = writeCallInstruction
+    
+def writeJumpInstruction(asm, args):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise ValueError("'jmp' takes precisely one immediate operand.")
+
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
+
+    if relOp.operandSize == size8:
+        asm.write([0xeb])
+        asm.writeArgument(relOp)
+    else:
+        asm.write([0xe9])
+        asm.writeArgument(relOp)
+
+builders["jmp"]  = writeJumpInstruction
+
+############################################################
+### Conditional jump instructions
+############################################################
+    
+def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
+    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+        raise ValueError("'%s' takes precisely one immediate operand." % name)
+
+    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
+
+    if relOp.operandSize == size8:
+        asm.write([0x70 | conditionOpCode])
+        asm.writeArgument(relOp)
+    else:
+        asm.write([0x0f, 0x80 | conditionOpCode])
+        asm.writeArgument(relOp)
+
+def defineConditionalJumpInstruction(name, conditionOpCode):
+    return lambda asm, args: writeConditionalJumpInstruction(asm, args, name, conditionOpCode)
+
+builders["jo"]   = defineConditionalJumpInstruction("jo",   0x0)
+builders["jno"]  = defineConditionalJumpInstruction("jno",  0x1)
+builders["jb"]   = defineConditionalJumpInstruction("jb",   0x2)
+builders["jc"]   = defineConditionalJumpInstruction("jc",   0x2)
+builders["jnae"] = defineConditionalJumpInstruction("jnae", 0x2)
+builders["jae"]  = defineConditionalJumpInstruction("jae",  0x3)
+builders["jnb"]  = defineConditionalJumpInstruction("jnb",  0x3)
+builders["jnc"]  = defineConditionalJumpInstruction("jnc",  0x3)
+builders["je"]   = defineConditionalJumpInstruction("je",   0x4)
+builders["jz"]   = defineConditionalJumpInstruction("jz",   0x4)
+builders["jnz"]  = defineConditionalJumpInstruction("jnz",  0x5)
+builders["jne"]  = defineConditionalJumpInstruction("jne",  0x5)
+builders["jbe"]  = defineConditionalJumpInstruction("jbe",  0x6)
+builders["jna"]  = defineConditionalJumpInstruction("jna",  0x6)
+builders["ja"]   = defineConditionalJumpInstruction("ja",   0x7)
+builders["jnbe"] = defineConditionalJumpInstruction("jnbe", 0x7)
+builders["js"]   = defineConditionalJumpInstruction("js",   0x8)
+builders["jns"]  = defineConditionalJumpInstruction("jns",  0x9)
+builders["jp"]   = defineConditionalJumpInstruction("jp",   0xa)
+builders["jpe"]  = defineConditionalJumpInstruction("jpe",  0xa)
+builders["jnp"]  = defineConditionalJumpInstruction("jnp",  0xb)
+builders["jpo"]  = defineConditionalJumpInstruction("jpo",  0xb)
+builders["jl"]   = defineConditionalJumpInstruction("jl",   0xc)
+builders["jnge"] = defineConditionalJumpInstruction("jnge", 0xc)
+builders["jge"]  = defineConditionalJumpInstruction("jge",  0xd)
+builders["jnl"]  = defineConditionalJumpInstruction("jnl",  0xd)
+builders["jle"]  = defineConditionalJumpInstruction("jle",  0xe)
+builders["jng"]  = defineConditionalJumpInstruction("jng",  0xe)
+builders["jg"]   = defineConditionalJumpInstruction("jg",   0xf)
+builders["jnle"] = defineConditionalJumpInstruction("jnle", 0xf)
+
+############################################################
+### Push/pop instructions
+############################################################
+
+def writePushPopRegisterInstruction(regOpCode, asm, arg):
+    asm.write([regOpCode << 3 | arg.operandIndex])
+
+def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
+    if len(args) != 1:
+        raise ValueError("'%s' takes precisely one argument." % name)
+
+    arg = args[0]
+
+    if arg.addressingMode == "register":
+        writePushPopRegisterInstruction(regOpCode, asm, arg)
+    else:
+        asm.write([memOpCode, createModRM(arg.addressingMode, memReg, arg.operandIndex)])
+        asm.writeArgument(arg)
+
+def definePushPopInstruction(name, regOpCode, memOpCode, memReg):
+    return lambda asm, args: writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args)
+
+builders["push"]  = definePushPopInstruction("push", 0xa, 0xff, 0x6)
+builders["pop"]   = definePushPopInstruction("pop", 0xb, 0x8f, 0x0)
+
+############################################################
+### Move instruction
+############################################################
+
+def writeMovImmediateInstruction(asm, args):
+    if len(args) != 2:
+        raise ValueError("'mov' takes precisely two arguments.")
+
+    memArg, immArg = args[0], args[1]
+
+    if memArg.addressingMode == "register":
+        asm.write([0xb << 4 | (int(memArg.operandSize != size8) & 0x01) << 3 | memArg.operandIndex])
+    else:
+        asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
+        asm.write([createModRM(memArg.addressingMode, 0x00, memArg.operandIndex)])
+        asm.writeArgument(memArg)
+
+    asm.writeArgument(immArg.cast(memArg.operandSize))
+
+builders["mov"] = defineAmbiguousInstruction(
+                      defineBinaryInstruction("mov", 0x22),
+                      writeMovImmediateInstruction)
+
+############################################################
+### Interrupt instruction
+############################################################
+
+def writeInterruptInstruction(asm, args):
+    if len(args) != 1:
+        raise ValueError("'int' takes precisely one argument.")
+    immArg = args[0].toUnsigned()
+    if immArg.operandSize > size8:
+        raise ValueError("'int' must take an 8-bit operand.")
+
+    asm.write([0xcd])
+    asm.writeArgument(immArg.cast(size8))
+
+builders["int"]   = writeInterruptInstruction
+
+############################################################
+### Test instruction
+############################################################
+
+def writeTestImmediateInstruction(asm, args):
+    if len(args) != 2:
+        raise ValueError("'test' takes precisely two operands.")
+    
+    isImm = lambda x: isinstance(x, Instructions.ImmediateOperandBase)
+
+    immArg, memArg = args
+    if isImm(memArg):
+        immArg, memArg = memArg, immArg
+
+    if not isImm(immArg) or isImm(memArg):
+        raise ValueError("'test' must take precisely one immediate operand and one memory/register operand.")
+
+    if immArg.operandSize > memArg.operandSize:
+        raise ValueError("The immediate operand may not be greater than the memory operand in a 'test' instruction.")
+
+    isWord = memArg.operandSize > size8
+    if memArg.operandIndex == 0 and memArg.addressingMode == "register":
+        asm.write([0xa8 | int(isWord) & 0x01])
+        asm.writeArgument(immArg.cast(memArg.operandSize))
+    else:
+        asm.write([0xf6 | int(isWord) & 0x01])
+        asm.write([createModRM(memArg.addressingMode, 0, memArg.operandIndex)])
+        asm.writeArgument(immArg.cast(memArg.operandSize))
+
+builders["test"]  = defineAmbiguousInstruction(
+                        defineBinaryInstruction("test", 0x21, True, True),
+                        writeTestImmediateInstruction)
+
+############################################################
+### Enter (= build stack frame) instruction
+############################################################
+
+def writeEnterInstruction(asm, args):
+    if len(args) != 2:
+        raise ValueError("'enter' takes precisely two arguments.")
+    if not all(isinstance(arg, Instructions.ImmediateOperandBase) for arg in args):
+        raise ValueError("'enter' must take two immediate arguments.")
+    if args[0].operandSize > size16 or args[1].operandSize > size8:
+        raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
+
+    asm.write([0xc8])
+    asm.writeArgument(args[0].cast(size16))
+    asm.writeArgument(args[1].cast(size8))
+
+builders["enter"] = writeEnterInstruction
+
+############################################################
+### Return instruction
+############################################################
+
+def writeRetInstruction(asm, args):
+    if len(args) > 1 or (len(args) > 0 and args[0].operandSize > size16):
+        raise ValueError("'ret' takes at most one 16-bit operand.")
+
+    if len(args) == 0 or args[0].operandSize == size0:
+        writeSimpleInstruction("ret", [0xc3], asm, args)
+    else:
+        asm.write([0xc2])
+        asm.writeArgument(args[0].cast(size16))
+
+builders["ret"]   = writeRetInstruction
+
+############################################################
+### Immediate multiply instruction
+############################################################
+
 def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     if len(args) != 2 and len(args) != 3:
         raise ValueError("'%s' takes either two or three arguments." % name)
 
     if len(args) == 2:
-        args = [ args[0], args[0], args[1] ] # transform `imul eax,      10`
-                                             # into      `imul eax, eax, 10`
+        args = [args[0], args[0], args[1]] # transform `imul eax,      10`
+                                           # into      `imul eax, eax, 10`
 
-    regArg, memArg, immArg = args[0], args[1], args[2]
+    regArg, memArg, immArg = args
 
     if regArg.addressingMode != "register":
         raise ValueError("'%s' instruction must have a register operand "
@@ -202,282 +527,23 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
     asm.writeArgument(memArg)
     asm.writeArgument(immArg)
 
-def writeMovImmediateInstruction(asm, args):
-    if len(args) != 2:
-        raise ValueError("'mov' takes precisely two arguments.")
-
-    memArg, immArg = args[0], args[1]
-
-    if memArg.addressingMode == "register":
-        asm.write([0xb << 4 | (int(memArg.operandSize != size8) & 0x01) << 3 | memArg.operandIndex])
-    else:
-        asm.write([0xc6 | (int(memArg.operandSize != size8) & 0x01)])
-        asm.write([createModRM(memArg.addressingMode, 0x00, memArg.operandIndex)])
-        asm.writeArgument(memArg)
-
-    asm.writeArgument(immArg.cast(memArg.operandSize))
-
-def writeInterruptInstruction(asm, args):
-    if len(args) != 1:
-        raise ValueError("'int' takes precisely one argument.")
-    immArg = args[0].toUnsigned()
-    if immArg.operandSize > size8:
-        raise ValueError("'int' must take an 8-bit operand.")
-
-    asm.write([0xcd])
-    asm.writeArgument(immArg.cast(size8))
-
-def writePushPopRegisterInstruction(regOpCode, asm, arg):
-    asm.write([regOpCode << 3 | arg.operandIndex])
-
-def writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args):
-    if len(args) != 1:
-        raise ValueError("'%s' takes precisely one argument." % name)
-
-    arg = args[0]
-
-    if arg.addressingMode == "register":
-        writePushPopRegisterInstruction(regOpCode, asm, arg)
-    else:
-        asm.write([memOpCode, createModRM(arg.addressingMode, memReg, arg.operandIndex)])
-        asm.writeArgument(arg)
-
-def writeEnterInstruction(asm, args):
-    if len(args) != 2:
-        raise ValueError("'enter' takes precisely two arguments.")
-    if not all(isinstance(arg, Instructions.ImmediateOperandBase) for arg in args):
-        raise ValueError("'enter' must take two immediate arguments.")
-    if args[0].operandSize > size16 or args[1].operandSize > size8:
-        raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
-
-    asm.write([0xc8])
-    asm.writeArgument(args[0].cast(size16))
-    asm.writeArgument(args[1].cast(size8))
-
-def writeRetInstruction(asm, args):
-    if len(args) > 1 or (len(args) > 0 and args[0].operandSize > size16):
-        raise ValueError("'ret' takes at most one 16-bit operand.")
-
-    if len(args) == 0 or args[0].operandSize == size0:
-        writeSimpleInstruction("ret", [0xc3], asm, args)
-    else:
-        asm.write([0xc2])
-        asm.writeArgument(args[0].cast(size16))
-
-def writeTestImmediateInstruction(asm, args):
-    if len(args) != 2:
-        raise ValueError("'test' takes precisely two operands.")
-    
-    isImm = lambda x: isinstance(x, Instructions.ImmediateOperandBase)
-
-    immArg, memArg = args
-    if isImm(memArg):
-        immArg, memArg = memArg, immArg
-
-    if not isImm(immArg) or isImm(memArg):
-        raise ValueError("'test' must take precisely one immediate operand and one memory/register operand.")
-
-    if immArg.operandSize > memArg.operandSize:
-        raise ValueError("The immediate operand may not be greater than the memory operand in a 'test' instruction.")
-
-    isWord = memArg.operandSize > size8
-    if memArg.operandIndex == 0 and memArg.addressingMode == "register":
-        asm.write([0xa8 | int(isWord) & 0x01])
-        asm.writeArgument(immArg.cast(memArg.operandSize))
-    else:
-        asm.write([0xf6 | int(isWord) & 0x01])
-        asm.write([createModRM(memArg.addressingMode, 0, memArg.operandIndex)])
-        asm.writeArgument(immArg.cast(memArg.operandSize))
-
-def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
-    if arg.makeRelative(shortOffset).operandSize <= size8:
-        return arg.makeSymbol(asm, asm.index).makeRelative(shortOffset).cast(size8)
-    else:
-        return arg.makeSymbol(asm, asm.index).makeRelative(longOffset).cast(size32)
-
-def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise ValueError("'%s' takes precisely one immediate operand." % name)
-
-    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
-
-    if relOp.operandSize == size8:
-        asm.write([0x70 | conditionOpCode])
-        asm.writeArgument(relOp)
-    else:
-        asm.write([0x0f, 0x80 | conditionOpCode])
-        asm.writeArgument(relOp)
-
-def writePrefixedInstruction(prefix, instructionBuilder, asm, args):
-    asm.write([prefix])
-    instructionBuilder(asm, args)
-
-def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args):
-    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperandBase):
-        immediateInstructionBuilder(asm, args)
-    else:
-        registerInstructionBuilder(asm, args)
-
-def writeShiftInstruction(name, extension, asm, args):
-    if len(args) != 2:
-        raise ValueError("'%s' takes precisely two operands." % name)
-
-    memArg, shiftArg = args
-    wordReg = memArg.operandSize > size8
-    modRM = createModRM(memArg.addressingMode, extension, memArg.operandIndex)
-
-    if isinstance(shiftArg, Instructions.ImmediateOperandBase):
-        if shiftArg.operandSize > size8:
-            raise ValueError("The immediate argument to a shift instruction cannot be larger than a byte.")
-        v = shiftArg.value & 31
-        if v == 1:
-            asm.write([0xD1 if wordReg else 0xD0, modRM])
-        else:
-            asm.write([0xC1 if wordReg else 0xC0, modRM, v])
-    elif shiftArg is registers["cl"]:
-        asm.write([0xD3 if wordReg else 0xD2, modRM])
-    else:
-        raise ValueError("The second argument to a shift instruction must be an "
-                        "immediate byte or the register CL.")
-    asm.writeArgument(memArg)
-
-def writeCallInstruction(asm, args):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise ValueError("'call' takes precisely one immediate operand.")
-    asm.write([0xe8])
-    asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
-    
-def writeJumpInstruction(asm, args):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
-        raise ValueError("'jmp' takes precisely one immediate operand.")
-
-    relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
-
-    if relOp.operandSize == size8:
-        asm.write([0xeb])
-        asm.writeArgument(relOp)
-    else:
-        asm.write([0xe9])
-        asm.writeArgument(relOp)
-
-def definePrefixedInstruction(prefix, instructionBuilder):
-    return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
-
-def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
-    return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
-
-def defineBinaryImmediateInstruction(name, opCode):
-    return lambda asm, args: writeBinaryImmediateInstruction(name, opCode, asm, args)
-
 def defineThreeOpImmediateInstruction(name, opCode):
     return lambda asm, args: writeThreeOpImmediateInstruction(name, opCode, asm, args)
-
-def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionBuilder):
-    return lambda asm, args: writeAmbiguousBinaryInstruction(registerInstructionBuilder,
-                                                             immediateInstructionBuilder,
-                                                             asm, args)
-
-def defineReversedArgumentsInstruction(instructionBuilder):
-    return lambda asm, args: instructionBuilder(asm, list(reversed(args)))
-
-def definePushPopInstruction(name, regOpCode, memOpCode, memReg):
-    return lambda asm, args: writePushPopInstruction(name, regOpCode, memOpCode, memReg, asm, args)
 
 def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
     return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
 
-def defineAmbiguousBinaryInstruction(name, immOpCode, opCode = None):
-    if opCode is None:
-        opCode = immOpCode << 1
-    binDef = defineBinaryInstruction(name, opCode)
-    immDef = defineBinaryImmediateInstruction(name, immOpCode)
-    return defineAmbiguousInstruction(binDef, immDef)
+builders["imul"] = defineAmbiguousArgumentCountInstruction({
+                     1 : defineUnaryInstruction("imul", 0xF6, 5),
+                     2 : defineAmbiguousInstruction(
+                           defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
+                           defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
+                     3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2),
+                   })
 
-def defineExtendedBinaryInstruction(name, prefix, opCode, needCast = True, reverseFlag = None):
-    return definePrefixedInstruction(prefix, defineBinaryInstruction(name, opCode, needCast, reverseFlag))
-
-def defineConditionalJumpInstruction(name, conditionOpCode):
-    return lambda asm, args: writeConditionalJumpInstruction(asm, args, name, conditionOpCode)
-
-def defineShiftInstruction(name, extension):
-    return lambda asm, args: writeShiftInstruction(name, extension, asm, args)
-
-addressingModeEncodings = {
-    "register" : 3,
-    "memory" : 0,
-    "memoryByteOffset" : 1,
-    "memoryWordOffset" : 2
-}
-
-def encodeAddressingMode(mode):
-    return addressingModeEncodings[mode]
-
-builders["ret"]   = writeRetInstruction
-builders["enter"] = writeEnterInstruction
-builders["push"]  = definePushPopInstruction("push", 0xa, 0xff, 0x6)
-builders["pop"]   = definePushPopInstruction("pop", 0xb, 0x8f, 0x0)
-builders["int"]   = writeInterruptInstruction
-builders["mov"]   = defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction)
-builders["movsx"] = defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False)
-builders["movzx"] = defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False)
-builders["lea"]   = defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23))
-builders["add"]   = defineAmbiguousBinaryInstruction("add", 0x00)
-builders["sub"]   = defineAmbiguousBinaryInstruction("sub", 0x05)
-builders["and"]   = defineAmbiguousBinaryInstruction("and", 0x04)
-builders["sbb"]   = defineAmbiguousBinaryInstruction("sbb", 0x03)
-builders["adc"]   = defineAmbiguousBinaryInstruction("adc", 0x02)
-builders["or"]    = defineAmbiguousBinaryInstruction("or",  0x01)
-builders["xor"]   = defineAmbiguousBinaryInstruction("xor", 0x06)
-builders["cmp"]   = defineAmbiguousBinaryInstruction("cmp", 0x07)
-builders["test"]  = defineAmbiguousInstruction(
-                        defineBinaryInstruction("test", 0x21, True, True),
-                        writeTestImmediateInstruction)
-builders["xchg"]  = defineBinaryInstruction("xchg", 0x21, True, False) # xchg conveniently overlaps with test
-builders["imul"]  = defineAmbiguousArgumentCountInstruction({
-                      1 : defineUnaryInstruction("imul", 0xF6, 5),
-                      2 : defineAmbiguousInstruction(
-                            defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
-                            defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
-                      3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2),
-                    })
-builders["sal"]   = defineShiftInstruction("sal", 4)
-builders["sar"]   = defineShiftInstruction("sar", 7)
-builders["shl"]   = defineShiftInstruction("shl", 4)
-builders["shr"]   = defineShiftInstruction("shr", 5)
-builders["call"]  = writeCallInstruction
-builders["jmp"]   = writeJumpInstruction
-# Lots of these conditional jump mnemonics are synonyms.
-builders["ja"]    = defineConditionalJumpInstruction("ja", 0x7)     # Jump if above (CF == 0 && ZF == 0)
-builders["jae"]   = defineConditionalJumpInstruction("jae", 0x3)    # Jump if above or equal (CF == 0)
-builders["jb"]    = defineConditionalJumpInstruction("jb", 0x2)     # Jump if below (CF == 1)
-builders["jbe"]   = defineConditionalJumpInstruction("jbe", 0x6)    # Jump if below or equal (CF == 1 || ZF == 1)
-builders["jc"]    = defineConditionalJumpInstruction("jc", 0x2)     # Jump if carry (CF == 1)
-builders["je"]    = defineConditionalJumpInstruction("je", 0x4)     # Jump if equal (ZF == 1)
-builders["jz"]    = defineConditionalJumpInstruction("jz", 0x4)     # Jump if zero (ZF == 1)
-builders["jg"]    = defineConditionalJumpInstruction("jg", 0xf)     # Jump if greater (ZF == 0 && SF == OF)
-builders["jge"]   = defineConditionalJumpInstruction("jge", 0xd)    # Jump if greater or equal (SF == OF)
-builders["jl"]    = defineConditionalJumpInstruction("jl", 0xc)     # Jump if less (SF != OF)
-builders["jle"]   = defineConditionalJumpInstruction("jle", 0xe)    # Jump if less or equal (ZF == 1 && SF != OF)
-builders["jna"]   = defineConditionalJumpInstruction("jna", 0x6)    # Jump if not above (CF == 1 || ZF == 1)
-builders["jnae"]  = defineConditionalJumpInstruction("jnae", 0x2)   # Jump if not above or equal (CF == 1)
-builders["jnb"]   = defineConditionalJumpInstruction("jnb", 0x3)    # Jump if not below (CF == 0)
-builders["jnbe"]  = defineConditionalJumpInstruction("jnbe", 0x7)   # Jump if not below or equal (CF == 0 && ZF == 0)
-builders["jnc"]   = defineConditionalJumpInstruction("jnc", 0x3)    # Jump if not carry (CF == 0)
-builders["jne"]   = defineConditionalJumpInstruction("jne", 0x5)    # Jump if not equal (ZF == 0)
-builders["jng"]   = defineConditionalJumpInstruction("jng", 0xe)    # Jump if not greater (ZF == 1 || SF != OF)
-builders["jnge"]  = defineConditionalJumpInstruction("jnge", 0xc)   # Jump if not greater or equal (SF != OF)
-builders["jnl"]   = defineConditionalJumpInstruction("jnl", 0xd)    # Jump if not less (SF == OF)
-builders["jnle"]  = defineConditionalJumpInstruction("jnle", 0xf)   # Jump if not less or equal (ZF == 0 && SF == OF)
-builders["jno"]   = defineConditionalJumpInstruction("jno", 0x1)    # Jump if not overflow (OF == 1)
-builders["jnp"]   = defineConditionalJumpInstruction("jnp", 0xb)    # Jump if not parity (PF == 0)
-builders["jns"]   = defineConditionalJumpInstruction("jns", 0x9)    # Jump if not sign (SF == 0)
-builders["jnz"]   = defineConditionalJumpInstruction("jnz", 0x5)    # Jump if not zero (ZF == 0)
-builders["jo"]    = defineConditionalJumpInstruction("jo", 0x0)     # Jump if overflow (OF == 1)
-builders["jp"]    = defineConditionalJumpInstruction("jp", 0xa)     # Jump if parity (PF == 1)
-builders["jpe"]   = defineConditionalJumpInstruction("jpe", 0xa)    # Jump if parity even (PF == 1)
-builders["jpo"]   = defineConditionalJumpInstruction("jpo", 0xb)    # Jump if parity odd (PF == 0)
-builders["js"]    = defineConditionalJumpInstruction("js", 0x8)     # Jump if sign (SF == 1)
-builders["jz"]    = defineConditionalJumpInstruction("jz", 0x4)     # Jump if zero (ZF == 1)
+############################################################
+### Assembler class
+############################################################
 
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
