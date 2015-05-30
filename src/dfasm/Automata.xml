@@ -7,8 +7,56 @@
     <member name="T:Automata.DFAutomaton`2">
       <summary> Defines a deterministic finite automaton. </summary>
     </member>
+    <member name="M:Automata.DFAutomaton`2.PerformTransition(TState,TChar)">
+      <summary> Applies the automaton's transition function to the given state and symbol. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.PerformExtendedTransition(TState,System.Collections.Generic.IEnumerable`1{TChar})">
+      <summary> Applies the automaton's extended transition function to the given state and string of symbols. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.Rename``2(TNState(TState),TNChar(TChar))">
+      <summary> Renames this automaton with the given state and character renamer. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.GetStates">
+      <summary> Gets the set of all states in this automaton. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.GetAlphabet">
+      <summary> Gets this automaton's alphabet, as a set of characters. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.IsAcceptingState(TState)">
+      <summary> Finds out if the given state is an accepting state. </summary>
+    </member>
     <member name="M:Automata.DFAutomaton`2.Accepts(System.Collections.Generic.IEnumerable`1{TChar})">
-      <summary> Gets a boolean value that indicates whether the automaton accepts the given string. </summary>
+      <summary> Checks if this automaton accepts the given string of symbols. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.TFAPartition">
+      <summary> Performs the table-filling algorithm on this automaton, and returns the resulting partition of equivalent states. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.ReachableStates">
+      <summary> Gets the set of all reachable states in this automaton. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.Optimize">
+      <summary> Optimizes this automaton. First, all reachable states are detected. Then, the TFA is applied to these reachable states, and all equivalent states are merged. A new automaton is constructed based on these merged states, and then returned. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.TagTrue(TState)">
+      <summary> Helper function that creates a key-value pair that has the given key, and a value of 'true'. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.TagFalse(TState)">
+      <summary> Helper function that creates a key-value pair that has the given key, and a value of 'false'. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.Id(TChar)">
+      <summary> Helper function that returns the given value. </summary>
+    </member>
+    <member name="M:Automata.DFAutomaton`2.EquivalentTo(Automata.DFAutomaton`2{TState,TChar})">
+      <summary> Checks if this automaton is equivalent to the given other automaton. </summary>
+    </member>
+    <member name="P:Automata.DFAutomaton`2.StartState">
+      <summary> Gets this automaton's start state. </summary>
+    </member>
+    <member name="P:Automata.DFAutomaton`2.AcceptingStates">
+      <summary> Gets this automaton's set of accepting states. </summary>
+    </member>
+    <member name="P:Automata.DFAutomaton`2.TransitionFunction">
+      <summary> Gets this automaton's transition function. </summary>
     </member>
     <member name="T:Automata.IAutomaton`1">
       <summary> Defines common automaton functionality. </summary>
@@ -16,11 +64,56 @@
     <member name="M:Automata.IAutomaton`1.Accepts(System.Collections.Generic.IEnumerable`1{TChar})">
       <summary> Gets a boolean value that indicates whether the automaton accepts the given string. </summary>
     </member>
+    <member name="T:Automata.Optional`1">
+      <summary> Defines a strongly-typed "optional" or "maybe" type. </summary>
+    </member>
+    <member name="M:Automata.Optional`1.Convert``1(TNew(T))">
+      <summary> Converts this optional instance to another type using the given conversion function. </summary>
+    </member>
+    <member name="M:Automata.Optional`1.Equals(Automata.Optional`1{T})">
+      <summary> Finds out if this optional object equals the given other optional object. </summary>
+    </member>
+    <member name="M:Automata.Optional`1.Equals(System.Object)">
+      <summary> Finds out if this optional object equals the given other optional object, if the latter is indeed an optional instance. </summary>
+    </member>
+    <member name="P:Automata.Optional`1.HasValue">
+      <summary> Gets a boolean value that indicates if this optional object has a value. </summary>
+    </member>
+    <member name="P:Automata.Optional`1.Value">
+      <summary> Gets the optional instance's value, if any. </summary>
+    </member>
     <member name="T:Automata.ENFAutomaton`2">
       <summary> Defines a non-deterministic finite automaton with epsilon transitions. </summary>
     </member>
+    <member name="M:Automata.ENFAutomaton`2.Rename``2(TNState(TState),TNChar(TChar))">
+      <summary> Creates a new e-NFA by renaming this e-NFA's states and symbols. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.PerformTransition(TState,Automata.Optional`1{TChar})">
+      <summary> Performs a state transition that starts at the given state, and uses the given character (or epsilon, if none is given). </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.PerformAllTransitions(System.Collections.Generic.IEnumerable`1{TState},Automata.Optional`1{TChar})">
+      <summary> Returns the set of all states reachable by performing a single transition with the given character for each state in the given state set. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.Eclose(TState)">
+      <summary> Computes the epsilon-closure of the given state. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.Eclose(System.Collections.Generic.IEnumerable`1{TState})">
+      <summary> Computes the epsilon-closure of the given set of states. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.PerformExtendedTransition(TState,System.Collections.Generic.IEnumerable`1{TChar})">
+      <summary> Performs the extended transition that starts at the given state and persues the labels that match the elements of the given sequence of characters, also performing the epsilon-closure. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.ContainsAcceptingState(System.Collections.Generic.IEnumerable`1{TState})">
+      <summary> Finds out whether the given sequence of states has a non-empty intersection with the set of accepting states. </summary>
+    </member>
     <member name="M:Automata.ENFAutomaton`2.Accepts(System.Collections.Generic.IEnumerable`1{TChar})">
-      <summary> Gets a boolean value that indicates whether the automaton accepts the given string. </summary>
+      <summary> Figures out whether this automaton accepts the given string of symbols. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.GetStates">
+      <summary> Gets the set of all states in this automaton. </summary>
+    </member>
+    <member name="M:Automata.ENFAutomaton`2.GetAlphabet">
+      <summary> Gets the automaton's alphabet. </summary>
     </member>
     <member name="M:Automata.ENFAutomaton`2.ToDFAutomaton">
       <summary> Performs the modified subset construction on this automaton. </summary>
@@ -28,8 +121,116 @@
     <member name="M:Automata.ENFAutomaton`2.ToDFAutomaton(Automata.StateSet`1{TChar})">
       <summary> Performs the modified subset construction based on the given alphabet. </summary>
     </member>
+    <member name="P:Automata.ENFAutomaton`2.StartState">
+      <summary> Gets the e-NFA's start state. </summary>
+    </member>
+    <member name="P:Automata.ENFAutomaton`2.AcceptingStates">
+      <summary> Gets the e-NFA's set of accepting states. </summary>
+    </member>
+    <member name="P:Automata.ENFAutomaton`2.TransitionFunction">
+      <summary> Gets the e-NFA's transition function. </summary>
+    </member>
+    <member name="T:Automata.RegexState">
+      <summary> Defines a regex state, which is used in conjunction with reference equality. </summary>
+    </member>
     <member name="T:Automata.IRegex">
       <summary> Defines a generic regular expression. </summary>
+    </member>
+    <member name="M:Automata.IRegex.ToENFAutomaton">
+      <summary> Constructs an epsilon-nfa for this regex. </summary>
+    </member>
+    <member name="M:Automata.IRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="T:Automata.LiteralRegex">
+      <summary> Defines a literal regex, which is a regex that matches a single symbol. </summary>
+    </member>
+    <member name="M:Automata.LiteralRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.LiteralRegex.ToENFAutomaton">
+      <summary> Constructs an epsilon-nfa for this regex. The construction is as follows:    start literal end. where 'start' is the initial state, 'end' is an accepting state, and 'literal' is this regex' literal. </summary>
+    </member>
+    <member name="P:Automata.LiteralRegex.Literal">
+      <summary> Gets the literal regex's literal or symbol. </summary>
+    </member>
+    <member name="T:Automata.EpsilonRegex">
+      <summary> Defines an epsilon regex, which matches the empty string. </summary>
+    </member>
+    <member name="M:Automata.EpsilonRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.EpsilonRegex.ToENFAutomaton">
+      <summary> Constructs an epsilon-nfa for this regex. The construction is as follows:    start -> end. where 'start' is the initial state, 'end' is an accepting state, and '->' is an epsilon-transition. </summary>
+    </member>
+    <member name="T:Automata.PhiRegex">
+      <summary> Defines a phi regex, which matches nothing. </summary>
+    </member>
+    <member name="M:Automata.PhiRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.PhiRegex.ToENFAutomaton">
+      <summary> Constructs an epsilon-nfa for this regex. The construction is as follows:    start. where 'start' is the initial state. There are no transitions, and no accepting states. </summary>
+    </member>
+    <member name="T:Automata.StringParser">
+      <summary> A sequential parser type for string "streams". </summary>
+    </member>
+    <member name="T:Automata.UnionRegex">
+      <summary> Defines a regex type that is the union of two other regex. </summary>
+    </member>
+    <member name="M:Automata.UnionRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.UnionRegex.ToENFAutomaton">
+      <summary> Creates an epsilon-nfa for this union regex. The construction is as follows:   * Automata are constructed for the left and right operands of this union operation.   * These automata are "merged":     * A new start state is created, with epsilon-transitions going out       to the left and right automata.     * The accepting states of the resulting automaton is union of the       accepting states of the left and right operands' automata. </summary>
+    </member>
+    <member name="T:Automata.ConcatRegex">
+      <summary> A regular expression that represents the concatenation of two other regular expressions. </summary>
+    </member>
+    <member name="M:Automata.ConcatRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.ConcatRegex.ToENFAutomaton">
+      <summary> Creates an epsilon-nfa for this concatenation regex. The construction is as follows:   * Automata are constructed for the left and right operands of this concat operation.   * These automata are "merged":     * The start state of the resulting automaton is the start state       of the left operand's automaton.     * The accepting states of the resulting automaton is the set of accepting       states of the right operand's automaton.   * For each accepting state in the left automaton, an epsilon-transition     is added to the resulting automaton that starts at said accepting     state and points to the right automaton's intial state. </summary>
+    </member>
+    <member name="P:Automata.ConcatRegex.Left">
+      <summary> Gets the concat regex's left operand. </summary>
+    </member>
+    <member name="P:Automata.ConcatRegex.Right">
+      <summary> Gets the concat regex's right operand. </summary>
+    </member>
+    <member name="T:Automata.ClosureRegex">
+      <summary> Defines a regex type that represents the closure of a given regex, which matches the language of said regex zero or more times. </summary>
+    </member>
+    <member name="M:Automata.ClosureRegex.ToString">
+      <summary> Gets this regex's string representation. </summary>
+    </member>
+    <member name="M:Automata.ClosureRegex.ToENFAutomaton">
+      <summary> Creates an epsilon-nfa for this closure regex. The construction is as follows:   * An automaton is constructed for the closure regex' inner regex.   * A new start state and a single accepting state are created.   * An automaton is created that consists of:     * The inner regex' automaton     * The new start and accepting states     * epsilon transitions that connect the inner automaton's start and       end states with the new automaton's start and end states.       Also, a "loop" is created to facilitate the closure. </summary>
+    </member>
+    <member name="P:Automata.ClosureRegex.Regex">
+      <summary> Gets the inner regex. </summary>
+    </member>
+    <member name="T:Automata.DFAHandle">
+      <summary> Represents a DFA "handle", which is a convenience object that makes interacting with DFAs easier. </summary>
+    </member>
+    <member name="M:Automata.DFAHandle.Optimize">
+      <summary> Optimizes this handle's underlying DFA, and returns a handle to said optimized DFA. </summary>
+    </member>
+    <member name="T:Automata.DFAState">
+      <summary> Represents a DFA in a specific, possibly invalid, state. </summary>
+    </member>
+    <member name="T:Automata.IndexAutomatonClosure`1">
+      <summary> A closure object that provides a renaming function. This is equivalent to a lambda that captures the 'indices' dictionary. </summary>
+    </member>
+    <member name="T:Automata.Interop">
+      <summary> The automata interop class. </summary>
+    </member>
+    <member name="M:Automata.Interop.IndexAutomaton``1(Automata.DFAutomaton`2{T,System.Char})">
+      <summary> Converts any automaton to an indexed automaton. </summary>
+    </member>
+    <member name="M:Automata.Interop.CompileRegex(System.String)">
+      <summary> Compiles the given regex to an indexed DFA handle. </summary>
     </member>
   </members>
 </doc>
