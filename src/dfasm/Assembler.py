@@ -337,128 +337,129 @@ addressingModeEncodings = {
 def encodeAddressingMode(mode):
     return addressingModeEncodings[mode]
 
-instructionBuilders = {
-    "pause" : defineSimpleInstruction("pause", [0xf3, 0x90]),
-    "hlt"   : defineSimpleInstruction("hlt", [0xf4]),
-    "nop"   : defineSimpleInstruction("nop", [0x90]),
-    "clc"   : defineSimpleInstruction("clc", [0xf8]),
-    "cld"   : defineSimpleInstruction("cld", [0xfc]),
-    "cli"   : defineSimpleInstruction("cli", [0xfa]),
-    "cmc"   : defineSimpleInstruction("cmc", [0xf5]),
-    "clts"  : defineSimpleInstruction("clts", [0x0f, 0x06]),
-    "stc"   : defineSimpleInstruction("stc", [0xf9]),
-    "std"   : defineSimpleInstruction("std", [0xfd]),
-    "sti"   : defineSimpleInstruction("sti", [0xfb]),
-    "sahf"  : defineSimpleInstruction("sahf", [0x9e]),
-    "lahf"  : defineSimpleInstruction("lahf", [0x9f]),
-    "lock"  : defineSimpleInstruction("lock", [0xf0]),
-    "iret"  : defineSimpleInstruction("iret", [0xcf]),
-    "iretd" : defineSimpleInstruction("iretd", [0xcf]), # Same mnemonic, apparently
-    "ret"   : writeRetInstruction,
-    "leave" : defineSimpleInstruction("leave", [0xc9]),
-    "pusha" : defineSimpleInstruction("pusha", [0x60]),
-    "popa"  : defineSimpleInstruction("popa", [0x61]),
-    "enter" : writeEnterInstruction,
-    "push"  : definePushPopInstruction("push", 0xa, 0xff, 0x6),
-    "pop"   : definePushPopInstruction("pop", 0xb, 0x8f, 0x0),
-    "int"   : writeInterruptInstruction,
-    "mov"   : defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction),
-    "movsx" : defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False),
-    "movzx" : defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False),
-    "lea"   : defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23)),
-    "not"   : defineUnaryInstruction("not", 0xf6, 2),
-    "neg"   : defineUnaryInstruction("neg", 0xf6, 3),
-    "inc"   : defineUnaryInstruction("inc", 0xfe, 0),
-    "dec"   : defineUnaryInstruction("dec", 0xfe, 1),
-    "seta"  : defineSetCCInstruction("seta",  0x97),
-    "setae" : defineSetCCInstruction("setae", 0x93),
-    "setb"  : defineSetCCInstruction("setb",  0x92),
-    "setbe" : defineSetCCInstruction("setbe", 0x96),
-    "setc"  : defineSetCCInstruction("setc",  0x92),
-    "sete"  : defineSetCCInstruction("sete",  0x94),
-    "setg"  : defineSetCCInstruction("setg",  0x9f),
-    "setge" : defineSetCCInstruction("setge", 0x9d),
-    "setl"  : defineSetCCInstruction("setl",  0x9c),
-    "setle" : defineSetCCInstruction("setle", 0x9e),
-    "setna" : defineSetCCInstruction("setna", 0x96),
-    "setna" : defineSetCCInstruction("setna", 0x92),
-    "setnb" : defineSetCCInstruction("setnb", 0x93),
-    "setnb" : defineSetCCInstruction("setnb", 0x97),
-    "setnc" : defineSetCCInstruction("setnc", 0x93),
-    "setne" : defineSetCCInstruction("setne", 0x95),
-    "setng" : defineSetCCInstruction("setng", 0x9e),
-    "setng" : defineSetCCInstruction("setng", 0x9c),
-    "setnl" : defineSetCCInstruction("setnl", 0x9d),
-    "setnl" : defineSetCCInstruction("setnl", 0x9f),
-    "setno" : defineSetCCInstruction("setno", 0x91),
-    "setnp" : defineSetCCInstruction("setnp", 0x9b),
-    "setns" : defineSetCCInstruction("setns", 0x99),
-    "setnz" : defineSetCCInstruction("setnz", 0x95),
-    "seto"  : defineSetCCInstruction("seto",  0x90),
-    "setp"  : defineSetCCInstruction("setp",  0x9a),
-    "setpe" : defineSetCCInstruction("setpe", 0x9a),
-    "setpo" : defineSetCCInstruction("setpo", 0x9b),
-    "sets"  : defineSetCCInstruction("sets",  0x98),
-    "setz"  : defineSetCCInstruction("setz",  0x94),
-    "add"   : defineAmbiguousBinaryInstruction("add", 0x00),
-    "sub"   : defineAmbiguousBinaryInstruction("sub", 0x05),
-    "and"   : defineAmbiguousBinaryInstruction("and", 0x04),
-    "sbb"   : defineAmbiguousBinaryInstruction("sbb", 0x03),
-    "adc"   : defineAmbiguousBinaryInstruction("adc", 0x02),
-    "or"    : defineAmbiguousBinaryInstruction("or", 0x01),
-    "xor"   : defineAmbiguousBinaryInstruction("xor", 0x06),
-    "cmp"   : defineAmbiguousBinaryInstruction("cmp", 0x07),
-    "test"  : defineAmbiguousInstruction(defineBinaryInstruction("test", 0x21, True, True),
-                                         writeTestImmediateInstruction),
-    "xchg"  : defineBinaryInstruction("xchg", 0x21, True, False), # xchg conveniently overlaps with test
-    "mul"   : defineUnaryInstruction("mul", 0xF6, 4),
-    "imul"  : defineAmbiguousArgumentCountInstruction({
-                1 : defineUnaryInstruction("imul", 0xF6, 5),
-                2 : defineAmbiguousInstruction(defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
-                                               defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
-                3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2)
-              }),
-    "div"   : defineUnaryInstruction("div", 0xF6, 6),
-    "idiv"  : defineUnaryInstruction("idiv", 0xF6, 7),
-    "sal"   : defineShiftInstruction("sal", 4),
-    "sar"   : defineShiftInstruction("sar", 7),
-    "shl"   : defineShiftInstruction("shl", 4),
-    "shr"   : defineShiftInstruction("shr", 5),
-    "call"  : writeCallInstruction,
-    "jmp"   : writeJumpInstruction,
-    # Lots of these conditional jump mnemonics are synonyms.
-    "ja"    : defineConditionalJumpInstruction("ja", 0x7),    # Jump if above (CF == 0 && ZF == 0)
-    "jae"   : defineConditionalJumpInstruction("jae", 0x3),   # Jump if above or equal (CF == 0)
-    "jb"    : defineConditionalJumpInstruction("jb", 0x2),    # Jump if below (CF == 1)
-    "jbe"   : defineConditionalJumpInstruction("jbe", 0x6),   # Jump if below or equal (CF == 1 || ZF == 1)
-    "jc"    : defineConditionalJumpInstruction("jc", 0x2),    # Jump if carry (CF == 1)
-    "je"    : defineConditionalJumpInstruction("je", 0x4),    # Jump if equal (ZF == 1)
-    "jz"    : defineConditionalJumpInstruction("jz", 0x4),    # Jump if zero (ZF == 1)
-    "jg"    : defineConditionalJumpInstruction("jg", 0xf),    # Jump if greater (ZF == 0 && SF == OF)
-    "jge"   : defineConditionalJumpInstruction("jge", 0xd),   # Jump if greater or equal (SF == OF)
-    "jl"    : defineConditionalJumpInstruction("jl", 0xc),    # Jump if less (SF != OF)
-    "jle"   : defineConditionalJumpInstruction("jle", 0xe),   # Jump if less or equal (ZF == 1 && SF != OF)
-    "jna"   : defineConditionalJumpInstruction("jna", 0x6),   # Jump if not above (CF == 1 || ZF == 1)
-    "jnae"  : defineConditionalJumpInstruction("jnae", 0x2),  # Jump if not above or equal (CF == 1)
-    "jnb"   : defineConditionalJumpInstruction("jnb", 0x3),   # Jump if not below (CF == 0)
-    "jnbe"  : defineConditionalJumpInstruction("jnbe", 0x7),  # Jump if not below or equal (CF == 0 && ZF == 0)
-    "jnc"   : defineConditionalJumpInstruction("jnc", 0x3),   # Jump if not carry (CF == 0)
-    "jne"   : defineConditionalJumpInstruction("jne", 0x5),   # Jump if not equal (ZF == 0)
-    "jng"   : defineConditionalJumpInstruction("jng", 0xe),   # Jump if not greater (ZF == 1 || SF != OF)
-    "jnge"  : defineConditionalJumpInstruction("jnge", 0xc),  # Jump if not greater or equal (SF != OF)
-    "jnl"   : defineConditionalJumpInstruction("jnl", 0xd),   # Jump if not less (SF == OF)
-    "jnle"  : defineConditionalJumpInstruction("jnle", 0xf),  # Jump if not less or equal (ZF == 0 && SF == OF)
-    "jno"   : defineConditionalJumpInstruction("jno", 0x1),   # Jump if not overflow (OF == 1)
-    "jnp"   : defineConditionalJumpInstruction("jnp", 0xb),   # Jump if not parity (PF == 0)
-    "jns"   : defineConditionalJumpInstruction("jns", 0x9),   # Jump if not sign (SF == 0)
-    "jnz"   : defineConditionalJumpInstruction("jnz", 0x5),   # Jump if not zero (ZF == 0)
-    "jo"    : defineConditionalJumpInstruction("jo", 0x0),    # Jump if overflow (OF == 1)
-    "jp"    : defineConditionalJumpInstruction("jp", 0xa),    # Jump if parity (PF == 1)
-    "jpe"   : defineConditionalJumpInstruction("jpe", 0xa),   # Jump if parity even (PF == 1)
-    "jpo"   : defineConditionalJumpInstruction("jpo", 0xb),   # Jump if parity odd (PF == 0)
-    "js"    : defineConditionalJumpInstruction("js", 0x8),    # Jump if sign (SF == 1)
-    "jz"    : defineConditionalJumpInstruction("jz", 0x4),    # Jump if zero (ZF == 1)
-}
+builders = {}
+builders["pause"] = defineSimpleInstruction("pause", [0xf3, 0x90])
+builders["hlt"]   = defineSimpleInstruction("hlt", [0xf4])
+builders["nop"]   = defineSimpleInstruction("nop", [0x90])
+builders["clc"]   = defineSimpleInstruction("clc", [0xf8])
+builders["cld"]   = defineSimpleInstruction("cld", [0xfc])
+builders["cli"]   = defineSimpleInstruction("cli", [0xfa])
+builders["cmc"]   = defineSimpleInstruction("cmc", [0xf5])
+builders["clts"]  = defineSimpleInstruction("clts", [0x0f, 0x06])
+builders["stc"]   = defineSimpleInstruction("stc", [0xf9])
+builders["std"]   = defineSimpleInstruction("std", [0xfd])
+builders["sti"]   = defineSimpleInstruction("sti", [0xfb])
+builders["sahf"]  = defineSimpleInstruction("sahf", [0x9e])
+builders["lahf"]  = defineSimpleInstruction("lahf", [0x9f])
+builders["lock"]  = defineSimpleInstruction("lock", [0xf0])
+builders["iret"]  = defineSimpleInstruction("iret", [0xcf])
+builders["iretd"] = defineSimpleInstruction("iretd", [0xcf]) # Same mnemonic, apparently
+builders["ret"]   = writeRetInstruction
+builders["leave"] = defineSimpleInstruction("leave", [0xc9])
+builders["pusha"] = defineSimpleInstruction("pusha", [0x60])
+builders["popa"]  = defineSimpleInstruction("popa", [0x61])
+builders["enter"] = writeEnterInstruction
+builders["push"]  = definePushPopInstruction("push", 0xa, 0xff, 0x6)
+builders["pop"]   = definePushPopInstruction("pop", 0xb, 0x8f, 0x0)
+builders["int"]   = writeInterruptInstruction
+builders["mov"]   = defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x22), writeMovImmediateInstruction)
+builders["movsx"] = defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False)
+builders["movzx"] = defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False)
+builders["lea"]   = defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23))
+builders["not"]   = defineUnaryInstruction("not", 0xf6, 2)
+builders["neg"]   = defineUnaryInstruction("neg", 0xf6, 3)
+builders["inc"]   = defineUnaryInstruction("inc", 0xfe, 0)
+builders["dec"]   = defineUnaryInstruction("dec", 0xfe, 1)
+builders["seta"]  = defineSetCCInstruction("seta",  0x97)
+builders["setae"] = defineSetCCInstruction("setae", 0x93)
+builders["setb"]  = defineSetCCInstruction("setb",  0x92)
+builders["setbe"] = defineSetCCInstruction("setbe", 0x96)
+builders["setc"]  = defineSetCCInstruction("setc",  0x92)
+builders["sete"]  = defineSetCCInstruction("sete",  0x94)
+builders["setg"]  = defineSetCCInstruction("setg",  0x9f)
+builders["setge"] = defineSetCCInstruction("setge", 0x9d)
+builders["setl"]  = defineSetCCInstruction("setl",  0x9c)
+builders["setle"] = defineSetCCInstruction("setle", 0x9e)
+builders["setna"] = defineSetCCInstruction("setna", 0x96)
+builders["setna"] = defineSetCCInstruction("setna", 0x92)
+builders["setnb"] = defineSetCCInstruction("setnb", 0x93)
+builders["setnb"] = defineSetCCInstruction("setnb", 0x97)
+builders["setnc"] = defineSetCCInstruction("setnc", 0x93)
+builders["setne"] = defineSetCCInstruction("setne", 0x95)
+builders["setng"] = defineSetCCInstruction("setng", 0x9e)
+builders["setng"] = defineSetCCInstruction("setng", 0x9c)
+builders["setnl"] = defineSetCCInstruction("setnl", 0x9d)
+builders["setnl"] = defineSetCCInstruction("setnl", 0x9f)
+builders["setno"] = defineSetCCInstruction("setno", 0x91)
+builders["setnp"] = defineSetCCInstruction("setnp", 0x9b)
+builders["setns"] = defineSetCCInstruction("setns", 0x99)
+builders["setnz"] = defineSetCCInstruction("setnz", 0x95)
+builders["seto"]  = defineSetCCInstruction("seto",  0x90)
+builders["setp"]  = defineSetCCInstruction("setp",  0x9a)
+builders["setpe"] = defineSetCCInstruction("setpe", 0x9a)
+builders["setpo"] = defineSetCCInstruction("setpo", 0x9b)
+builders["sets"]  = defineSetCCInstruction("sets",  0x98)
+builders["setz"]  = defineSetCCInstruction("setz",  0x94)
+builders["add"]   = defineAmbiguousBinaryInstruction("add", 0x00)
+builders["sub"]   = defineAmbiguousBinaryInstruction("sub", 0x05)
+builders["and"]   = defineAmbiguousBinaryInstruction("and", 0x04)
+builders["sbb"]   = defineAmbiguousBinaryInstruction("sbb", 0x03)
+builders["adc"]   = defineAmbiguousBinaryInstruction("adc", 0x02)
+builders["or"]    = defineAmbiguousBinaryInstruction("or",  0x01)
+builders["xor"]   = defineAmbiguousBinaryInstruction("xor", 0x06)
+builders["cmp"]   = defineAmbiguousBinaryInstruction("cmp", 0x07)
+builders["test"]  = defineAmbiguousInstruction(
+                        defineBinaryInstruction("test", 0x21, True, True),
+                        writeTestImmediateInstruction)
+builders["xchg"]  = defineBinaryInstruction("xchg", 0x21, True, False) # xchg conveniently overlaps with test
+builders["mul"]   = defineUnaryInstruction("mul", 0xF6, 4)
+builders["imul"]  = defineAmbiguousArgumentCountInstruction({
+                      1 : defineUnaryInstruction("imul", 0xF6, 5),
+                      2 : defineAmbiguousInstruction(
+                            defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
+                            defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
+                      3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2),
+                    })
+builders["div"]   = defineUnaryInstruction("div", 0xF6, 6)
+builders["idiv"]  = defineUnaryInstruction("idiv", 0xF6, 7)
+builders["sal"]   = defineShiftInstruction("sal", 4)
+builders["sar"]   = defineShiftInstruction("sar", 7)
+builders["shl"]   = defineShiftInstruction("shl", 4)
+builders["shr"]   = defineShiftInstruction("shr", 5)
+builders["call"]  = writeCallInstruction
+builders["jmp"]   = writeJumpInstruction
+# Lots of these conditional jump mnemonics are synonyms.
+builders["ja"]    = defineConditionalJumpInstruction("ja", 0x7)     # Jump if above (CF == 0 && ZF == 0)
+builders["jae"]   = defineConditionalJumpInstruction("jae", 0x3)    # Jump if above or equal (CF == 0)
+builders["jb"]    = defineConditionalJumpInstruction("jb", 0x2)     # Jump if below (CF == 1)
+builders["jbe"]   = defineConditionalJumpInstruction("jbe", 0x6)    # Jump if below or equal (CF == 1 || ZF == 1)
+builders["jc"]    = defineConditionalJumpInstruction("jc", 0x2)     # Jump if carry (CF == 1)
+builders["je"]    = defineConditionalJumpInstruction("je", 0x4)     # Jump if equal (ZF == 1)
+builders["jz"]    = defineConditionalJumpInstruction("jz", 0x4)     # Jump if zero (ZF == 1)
+builders["jg"]    = defineConditionalJumpInstruction("jg", 0xf)     # Jump if greater (ZF == 0 && SF == OF)
+builders["jge"]   = defineConditionalJumpInstruction("jge", 0xd)    # Jump if greater or equal (SF == OF)
+builders["jl"]    = defineConditionalJumpInstruction("jl", 0xc)     # Jump if less (SF != OF)
+builders["jle"]   = defineConditionalJumpInstruction("jle", 0xe)    # Jump if less or equal (ZF == 1 && SF != OF)
+builders["jna"]   = defineConditionalJumpInstruction("jna", 0x6)    # Jump if not above (CF == 1 || ZF == 1)
+builders["jnae"]  = defineConditionalJumpInstruction("jnae", 0x2)   # Jump if not above or equal (CF == 1)
+builders["jnb"]   = defineConditionalJumpInstruction("jnb", 0x3)    # Jump if not below (CF == 0)
+builders["jnbe"]  = defineConditionalJumpInstruction("jnbe", 0x7)   # Jump if not below or equal (CF == 0 && ZF == 0)
+builders["jnc"]   = defineConditionalJumpInstruction("jnc", 0x3)    # Jump if not carry (CF == 0)
+builders["jne"]   = defineConditionalJumpInstruction("jne", 0x5)    # Jump if not equal (ZF == 0)
+builders["jng"]   = defineConditionalJumpInstruction("jng", 0xe)    # Jump if not greater (ZF == 1 || SF != OF)
+builders["jnge"]  = defineConditionalJumpInstruction("jnge", 0xc)   # Jump if not greater or equal (SF != OF)
+builders["jnl"]   = defineConditionalJumpInstruction("jnl", 0xd)    # Jump if not less (SF == OF)
+builders["jnle"]  = defineConditionalJumpInstruction("jnle", 0xf)   # Jump if not less or equal (ZF == 0 && SF == OF)
+builders["jno"]   = defineConditionalJumpInstruction("jno", 0x1)    # Jump if not overflow (OF == 1)
+builders["jnp"]   = defineConditionalJumpInstruction("jnp", 0xb)    # Jump if not parity (PF == 0)
+builders["jns"]   = defineConditionalJumpInstruction("jns", 0x9)    # Jump if not sign (SF == 0)
+builders["jnz"]   = defineConditionalJumpInstruction("jnz", 0x5)    # Jump if not zero (ZF == 0)
+builders["jo"]    = defineConditionalJumpInstruction("jo", 0x0)     # Jump if overflow (OF == 1)
+builders["jp"]    = defineConditionalJumpInstruction("jp", 0xa)     # Jump if parity (PF == 1)
+builders["jpe"]   = defineConditionalJumpInstruction("jpe", 0xa)    # Jump if parity even (PF == 1)
+builders["jpo"]   = defineConditionalJumpInstruction("jpo", 0xb)    # Jump if parity odd (PF == 0)
+builders["js"]    = defineConditionalJumpInstruction("js", 0x8)     # Jump if sign (SF == 1)
+builders["jz"]    = defineConditionalJumpInstruction("jz", 0x4)     # Jump if zero (ZF == 1)
 
 class Assembler(object):
     """ Converts a list of instructions and labels to bytecode. """
@@ -558,7 +559,7 @@ class Assembler(object):
         """ Process the given InstructionNode. """
         op = str(node.mnemonic)
 
-        if op in instructionBuilders:
-            instructionBuilders[op](self, node.argumentList.toOperands(self))
+        if op in builders:
+            builders[op](self, node.argumentList.toOperands(self))
         else:
             raise ValueError('unknown opcode')
