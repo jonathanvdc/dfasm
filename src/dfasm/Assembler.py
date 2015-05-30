@@ -4,6 +4,10 @@ import Symbols
 
 builders = {}
 
+############################################################
+### Simple (zero-argument) instructions
+############################################################
+
 def writeSimpleInstruction(name, opCode, asm, args):
     if len(args) > 0:
         raise ValueError("'%s' does not take any arguments." % name)
@@ -26,12 +30,15 @@ builders["sti"]   = defineSimpleInstruction("sti",   [0xfb])
 builders["sahf"]  = defineSimpleInstruction("sahf",  [0x9e])
 builders["lahf"]  = defineSimpleInstruction("lahf",  [0x9f])
 builders["lock"]  = defineSimpleInstruction("lock",  [0xf0])
-# Same mnemonic, apparently
 builders["iret"]  = defineSimpleInstruction("iret",  [0xcf])
 builders["iretd"] = defineSimpleInstruction("iretd", [0xcf])
 builders["leave"] = defineSimpleInstruction("leave", [0xc9])
 builders["pusha"] = defineSimpleInstruction("pusha", [0x60])
 builders["popa"]  = defineSimpleInstruction("popa",  [0x61])
+
+############################################################
+### Unary instructions
+############################################################
 
 def createModRM(mode, regIndex, memIndex):
     """ Created a MOD R/M byte. """
@@ -54,6 +61,58 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
 
     asm.write([opcodeByte, operandsByte])
     asm.writeArgument(arg)
+
+def defineUnaryInstruction(name, opCode, extension):
+    return lambda asm, args: writeUnaryInstruction(name, opCode, extension, asm, args)
+
+builders["not"]  = defineUnaryInstruction("not",  0xf6, 2)
+builders["neg"]  = defineUnaryInstruction("neg",  0xf6, 3)
+builders["inc"]  = defineUnaryInstruction("inc",  0xfe, 0)
+builders["dec"]  = defineUnaryInstruction("dec",  0xfe, 1)
+builders["mul"]  = defineUnaryInstruction("mul",  0xf6, 4)
+builders["div"]  = defineUnaryInstruction("div",  0xf6, 6)
+builders["idiv"] = defineUnaryInstruction("idiv", 0xf6, 7)
+
+############################################################
+### setCC instructions
+############################################################
+
+def defineSetCCInstruction(name, byte):
+    def write(asm, args):
+        asm.write([0x0f])
+        writeUnaryInstruction(name, byte, 0, asm, args, byteOnly=True)
+    return write
+
+builders["seto"]  = defineSetCCInstruction("seto",  0x90)
+builders["setno"] = defineSetCCInstruction("setno", 0x91)
+builders["setb"]  = defineSetCCInstruction("setb",  0x92)
+builders["setc"]  = defineSetCCInstruction("setc",  0x92)
+builders["setna"] = defineSetCCInstruction("setna", 0x92)
+builders["setae"] = defineSetCCInstruction("setae", 0x93)
+builders["setnb"] = defineSetCCInstruction("setnb", 0x93)
+builders["setnc"] = defineSetCCInstruction("setnc", 0x93)
+builders["sete"]  = defineSetCCInstruction("sete",  0x94)
+builders["setz"]  = defineSetCCInstruction("setz",  0x94)
+builders["setne"] = defineSetCCInstruction("setne", 0x95)
+builders["setnz"] = defineSetCCInstruction("setnz", 0x95)
+builders["setbe"] = defineSetCCInstruction("setbe", 0x96)
+builders["setna"] = defineSetCCInstruction("setna", 0x96)
+builders["seta"]  = defineSetCCInstruction("seta",  0x97)
+builders["setnb"] = defineSetCCInstruction("setnb", 0x97)
+builders["sets"]  = defineSetCCInstruction("sets",  0x98)
+builders["setns"] = defineSetCCInstruction("setns", 0x99)
+builders["setp"]  = defineSetCCInstruction("setp",  0x9a)
+builders["setpe"] = defineSetCCInstruction("setpe", 0x9a)
+builders["setnp"] = defineSetCCInstruction("setnp", 0x9b)
+builders["setpo"] = defineSetCCInstruction("setpo", 0x9b)
+builders["setl"]  = defineSetCCInstruction("setl",  0x9c)
+builders["setng"] = defineSetCCInstruction("setng", 0x9c)
+builders["setge"] = defineSetCCInstruction("setge", 0x9d)
+builders["setnl"] = defineSetCCInstruction("setnl", 0x9d)
+builders["setle"] = defineSetCCInstruction("setle", 0x9e)
+builders["setng"] = defineSetCCInstruction("setng", 0x9e)
+builders["setg"]  = defineSetCCInstruction("setg",  0x9f)
+builders["setnl"] = defineSetCCInstruction("setnl", 0x9f)
 
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
@@ -304,15 +363,6 @@ def writeJumpInstruction(asm, args):
 def definePrefixedInstruction(prefix, instructionBuilder):
     return lambda asm, args: writePrefixedInstruction(prefix, instructionBuilder, asm, args)
 
-def defineUnaryInstruction(name, opCode, extension):
-    return lambda asm, args: writeUnaryInstruction(name, opCode, extension, asm, args)
-
-def defineSetCCInstruction(name, byte):
-    def write(asm, args):
-        asm.write([0x0f])
-        writeUnaryInstruction(name, byte, 0, asm, args, byteOnly=True)
-    return write
-
 def defineBinaryInstruction(name, opCode, needCast = True, reverseFlag = None):
     return lambda asm, args: writeBinaryInstruction(name, opCode, asm, args, needCast, reverseFlag)
 
@@ -371,40 +421,6 @@ builders["mov"]   = defineAmbiguousInstruction(defineBinaryInstruction("mov", 0x
 builders["movsx"] = defineExtendedBinaryInstruction("movsx", 0x0f, 0x2f, False)
 builders["movzx"] = defineExtendedBinaryInstruction("movzx", 0x0f, 0x2d, False)
 builders["lea"]   = defineReversedArgumentsInstruction(defineBinaryInstruction("lea", 0x23))
-builders["not"]   = defineUnaryInstruction("not", 0xf6, 2)
-builders["neg"]   = defineUnaryInstruction("neg", 0xf6, 3)
-builders["inc"]   = defineUnaryInstruction("inc", 0xfe, 0)
-builders["dec"]   = defineUnaryInstruction("dec", 0xfe, 1)
-builders["seta"]  = defineSetCCInstruction("seta",  0x97)
-builders["setae"] = defineSetCCInstruction("setae", 0x93)
-builders["setb"]  = defineSetCCInstruction("setb",  0x92)
-builders["setbe"] = defineSetCCInstruction("setbe", 0x96)
-builders["setc"]  = defineSetCCInstruction("setc",  0x92)
-builders["sete"]  = defineSetCCInstruction("sete",  0x94)
-builders["setg"]  = defineSetCCInstruction("setg",  0x9f)
-builders["setge"] = defineSetCCInstruction("setge", 0x9d)
-builders["setl"]  = defineSetCCInstruction("setl",  0x9c)
-builders["setle"] = defineSetCCInstruction("setle", 0x9e)
-builders["setna"] = defineSetCCInstruction("setna", 0x96)
-builders["setna"] = defineSetCCInstruction("setna", 0x92)
-builders["setnb"] = defineSetCCInstruction("setnb", 0x93)
-builders["setnb"] = defineSetCCInstruction("setnb", 0x97)
-builders["setnc"] = defineSetCCInstruction("setnc", 0x93)
-builders["setne"] = defineSetCCInstruction("setne", 0x95)
-builders["setng"] = defineSetCCInstruction("setng", 0x9e)
-builders["setng"] = defineSetCCInstruction("setng", 0x9c)
-builders["setnl"] = defineSetCCInstruction("setnl", 0x9d)
-builders["setnl"] = defineSetCCInstruction("setnl", 0x9f)
-builders["setno"] = defineSetCCInstruction("setno", 0x91)
-builders["setnp"] = defineSetCCInstruction("setnp", 0x9b)
-builders["setns"] = defineSetCCInstruction("setns", 0x99)
-builders["setnz"] = defineSetCCInstruction("setnz", 0x95)
-builders["seto"]  = defineSetCCInstruction("seto",  0x90)
-builders["setp"]  = defineSetCCInstruction("setp",  0x9a)
-builders["setpe"] = defineSetCCInstruction("setpe", 0x9a)
-builders["setpo"] = defineSetCCInstruction("setpo", 0x9b)
-builders["sets"]  = defineSetCCInstruction("sets",  0x98)
-builders["setz"]  = defineSetCCInstruction("setz",  0x94)
 builders["add"]   = defineAmbiguousBinaryInstruction("add", 0x00)
 builders["sub"]   = defineAmbiguousBinaryInstruction("sub", 0x05)
 builders["and"]   = defineAmbiguousBinaryInstruction("and", 0x04)
@@ -417,7 +433,6 @@ builders["test"]  = defineAmbiguousInstruction(
                         defineBinaryInstruction("test", 0x21, True, True),
                         writeTestImmediateInstruction)
 builders["xchg"]  = defineBinaryInstruction("xchg", 0x21, True, False) # xchg conveniently overlaps with test
-builders["mul"]   = defineUnaryInstruction("mul", 0xF6, 4)
 builders["imul"]  = defineAmbiguousArgumentCountInstruction({
                       1 : defineUnaryInstruction("imul", 0xF6, 5),
                       2 : defineAmbiguousInstruction(
@@ -425,8 +440,6 @@ builders["imul"]  = defineAmbiguousArgumentCountInstruction({
                             defineThreeOpImmediateInstruction("imul", 0x6B >> 2)),
                       3 : defineThreeOpImmediateInstruction("imul", 0x6B >> 2),
                     })
-builders["div"]   = defineUnaryInstruction("div", 0xF6, 6)
-builders["idiv"]  = defineUnaryInstruction("idiv", 0xF6, 7)
 builders["sal"]   = defineShiftInstruction("sal", 4)
 builders["sar"]   = defineShiftInstruction("sar", 7)
 builders["shl"]   = defineShiftInstruction("shl", 4)
