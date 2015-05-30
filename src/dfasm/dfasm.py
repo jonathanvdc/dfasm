@@ -14,6 +14,7 @@ import libcoff
 import libdiagnostics
 from Lexer import *
 from Parser import *
+from libdiagnostics import DiagnosticsException
 
 def printDebug(value):
     if debug:
@@ -150,7 +151,7 @@ if sys.stdin.isatty():
         doc = libdiagnostics.SourceDocument(line, "line " + str(lineIndex))
         try:
             lexed = lexAsm(doc)
-        except libdiagnostics.DiagnosticsException as ex:
+        except DiagnosticsException as ex:
             log.LogError(ex.Entry)
             continue
         printDebug(lexed)
@@ -160,10 +161,14 @@ if sys.stdin.isatty():
 
         for item in instrs:
             try:
-                asm.process(item)
-            except libdiagnostics.DiagnosticsException as ex:
+                try:
+                    asm.process(item)
+                except ValueError as ex:
+                    wholeLine = libdiagnostics.SourceLocation(doc, 0, len(line))
+                    raise DiagnosticsException('Invalid', str(ex), wholeLine)
+            except DiagnosticsException as ex:
                 log.LogError(ex.Entry)
-    
+            
         if debug:
             for item in filter(lambda x: isinstance(x, InstructionNode), instrs):
                 print("Operands:")
