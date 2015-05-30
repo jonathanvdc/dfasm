@@ -33,7 +33,7 @@ namespace libcoff
         Align64Bytes = 0x00700000,
         Align128Bytes = 0x00800000,
         Align256Bytes = 0x00900000,
-        Align512Bytes = \1a00000,
+        Align512Bytes = 0x00a00000,
         Align1024Bytes = 0x00b00000,
         Align2048Bytes = 0x00c00000,
         Align4096Bytes = 0x00d00000,
