@@ -492,8 +492,10 @@ def defineAmbiguousArgumentCountInstruction(name, instructionBuilderDict):
         if len(args) in instructionBuilderDict:
             return instructionBuilderDict[len(args)](asm, args)
         else:
-            countMsg = ' or '.join(', '.join(map(str, instructionBuilderDict.keys())).rsplit(', ', 1))
-            raise ValueError("'%s' takes %s arguments." % (name, countMsg))
+            options = [str(opt) for opt in instructionBuilderDict.keys()]
+            options = ', '.join(options)
+            options = ' or '.join(options.rsplit(', ', 1))
+            raise ValueError("'%s' takes %s arguments." % (name, options))
 
     return compositeBuilder
 
