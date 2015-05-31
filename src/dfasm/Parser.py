@@ -129,6 +129,28 @@ class IdentifierNode(LiteralNode):
     def __repr__(self):
         return "IdentifierNode(%r)" % self.token
 
+class NegateNode(object):
+    """ Describes a negated immediate syntax node. """
+    def __init__(self, minus, contents):
+        """ `minus` is the unary negation token, `contents` is the negated immediate node."""
+        self.minus = minus
+        self.contents = contents
+
+    def toOperand(self, asm):
+        """ Converts the integer node to an operand. """
+        contentsOp = self.contents.toOperand(asm)
+        if not isinstance(contentsOp, Instructions.ImmediateOperand):
+            raise DiagnosticsException("Invalid negation node", 
+                                       "Negation must be applied to an immediate.",
+                                       self.minus.location)
+        return Instructions.ImmediateOperand.createSigned(-contentsOp.value)
+
+    def __str__(self):
+        return "%s%s" % (self.minus, self.contents)
+
+    def __repr__(self):
+        return "NegateNode(%r, %r)" % (self.minus, self.contents)
+
 class BinaryNode(object):
     """ Defines a syntax node that captures a binary expression. """
     def __init__(self, left, op, right):
@@ -619,7 +641,9 @@ def parsePrimary(tokens):
              ^~  ^~~~~~~    ^
     """
     peek = tokens.peekNoTrivia()
-    if peek.type == "lparen":
+    if peek.type == "minus":
+        return NegateNode(tokens.nextNoTrivia(), parsePrimary(tokens))
+    elif peek.type == "lparen":
         return parseParentheses(tokens)
     elif peek.type == "lbracket":
         return parseMemory(tokens)
