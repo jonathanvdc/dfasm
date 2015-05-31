@@ -108,6 +108,7 @@ jit = False
 repl = True
 output = None
 arg = None
+retType = int
 
 for argument in sys.argv[1:]:
     if argument == "-d":
@@ -132,6 +133,8 @@ for argument in sys.argv[1:]:
         output = argument[3:]
     elif argument.startswith("-arg:"):
         arg = eval(argument[len("-arg:"):])
+    elif argument.startswith("-ret:"):
+        retType = eval(argument[len("-ret:"):])
 
 asm = Assembler.Assembler()
 
@@ -204,9 +207,9 @@ if jit:
     virtBuf.Write(System.Array[System.Byte](asm.code))
     func = libjit.JitFunction(virtBuf, getEntryPointOffset(asm))
     if arg is None:
-        print(func.Invoke[int]())
+        print(func.Invoke[retType]())
     else:
-        print(func.Invoke[int](arg))
+        print(func.Invoke[retType](arg))
     func.Dispose()
 elif repl:
     asm.patchLabels()
