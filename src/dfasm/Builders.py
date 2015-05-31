@@ -475,7 +475,7 @@ builders["test"]  = defineAmbiguousInstruction(
 def writeEnterInstruction(asm, args):
     if len(args) != 2:
         raise ValueError("'enter' takes precisely two arguments.")
-    if not all(isImmedate(arg) for arg in args):
+    if not all(isImmediate(arg) for arg in args):
         raise ValueError("'enter' must take two immediate arguments.")
     if args[0].operandSize > size16 or args[1].operandSize > size8:
         raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
