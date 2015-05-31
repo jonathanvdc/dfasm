@@ -1,5 +1,4 @@
 import Instructions
-import Assembler
 import Lexer
 import Symbols
 import math

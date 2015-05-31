@@ -64,17 +64,6 @@ class Assembler(object):
                 self.code[i:i+1] = self.code[i].getData(self)
             i += 1
 
-    def assemble(self, nodes):
-        """ Assemble the given list of instructions and labels into bytecode
-        and return the resulting list of bytes. """
-
-        for item in nodes:
-            self.process(item)
-
-        patchLabels()
-
-        return self.code
-
     def process(self, node):
         if isinstance(node, LabelNode):
             self.defineSymbol(Symbols.LocalSymbol(node.name.contents, self.index, False))
