@@ -470,10 +470,17 @@ def writeEnterInstruction(asm, args):
 def defineExtendedArgumentInstruction(builder, extraArgs):
     return lambda asm, args: builder(asm, args + extraArgs)
 
-def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
-    return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
+def defineAmbiguousArgumentCountInstruction(name, instructionBuilderDict):
+    def compositeBuilder(asm, args):
+        if len(args) in instructionBuilderDict:
+            return instructionBuilderDict[len(args)](asm, args)
+        else:
+            countMsg = ' or '.join(', '.join(map(str, instructionBuilderDict.keys())).rsplit(', ', 1))
+            raise ValueError("'%s' takes %s arguments." % (name, countMsg))
 
-builders["enter"] = defineAmbiguousArgumentCountInstruction({
+    return compositeBuilder
+
+builders["enter"] = defineAmbiguousArgumentCountInstruction("enter", {
                         1: defineExtendedArgumentInstruction(writeEnterInstruction, [Instructions.ImmediateOperand.createUnsigned(0)]),
                         2: writeEnterInstruction
                     })
@@ -540,7 +547,7 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
 def defineThreeOpImmediateInstruction(name, opCode):
     return lambda asm, args: writeThreeOpImmediateInstruction(name, opCode, asm, args)
 
-builders["imul"] = defineAmbiguousArgumentCountInstruction({
+builders["imul"] = defineAmbiguousArgumentCountInstruction("imul", {
                      1 : defineUnaryInstruction("imul", 0xf6, 5),
                      2 : defineAmbiguousInstruction(
                            defineExtendedBinaryInstruction("imul", 0x0f, 0x2b),
