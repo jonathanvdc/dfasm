@@ -4,6 +4,8 @@ import Symbols
 
 builders = {}
 
+isImmediate = lambda x: isinstance(x, Instructions.ImmediateOperandBase)
+
 ############################################################
 ### Simple (zero-argument) instructions
 ############################################################
@@ -62,8 +64,8 @@ def writeUnaryInstruction(name, opCode, extension, asm, args, byteOnly=False):
     isWord = arg.operandSize > size8
     if isWord and byteOnly:
         raise ValueError("'%s' requires a byte argument." % name)
-    if isinstance(arg, Instructions.ImmediateOperandBase) and byteOnly:
-        raise ValueError("'%s' requires a register argument." % name)
+    if isImmediate(arg):
+        raise ValueError("The argument to '%s' may not be an immediate value." % name)
     argIndex = arg.operandIndex
 
     opcodeByte = opCode | (0x01 if isWord else 0x00)
@@ -138,8 +140,13 @@ builders["setnl"] = defineSetCCInstruction("setnl", 0x9f)
 def writeBinaryInstruction(name, opCode, asm, args, needCast = True, reverseFlag = None):
     if len(args) != 2:
         raise ValueError("'%s' takes precisely two arguments." % name)
+    if isImmediate(args[0]):
+        raise ValueError("The first argument to '%s' may not be an immediate value." % name)
+
     reverseArgs = args[0].addressingMode != "register"
-    regArg, memArg = (args[1], args[0]) if reverseArgs else (args[0], args[1])
+    if reverseArgs: args.reverse()
+    regArg, memArg = args
+
     if reverseFlag != None:
         reverseArgs = reverseFlag
 
@@ -171,6 +178,9 @@ def writeBinaryImmediateInstruction(name, opCode, asm, args):
         raise ValueError("'%s' takes precisely two arguments." % name)
 
     memArg, immArg = args[0], args[1]
+
+    if isImmediate(memArg):
+        raise ValueError("The first argument to '%s' may not be an immediate value." % name)
 
     wordReg = memArg.operandSize > size8
 
@@ -213,7 +223,7 @@ def defineAmbiguousInstruction(registerInstructionBuilder, immediateInstructionB
                                                              asm, args)
 
 def writeAmbiguousBinaryInstruction(registerInstructionBuilder, immediateInstructionBuilder, asm, args):
-    if len(args) > 1 and isinstance(args[1], Instructions.ImmediateOperandBase):
+    if len(args) > 1 and isImmediate(args[1]):
         immediateInstructionBuilder(asm, args)
     else:
         registerInstructionBuilder(asm, args)
@@ -243,10 +253,13 @@ def writeShiftInstruction(name, extension, asm, args):
         raise ValueError("'%s' takes precisely two operands." % name)
 
     memArg, shiftArg = args
+    if isImmediate(memArg):
+        raise ValueError("The first argument to '%s' may not be an immediate value." % name)
+    
     wordReg = memArg.operandSize > size8
     modRM = createModRM(memArg.addressingMode, extension, memArg.operandIndex)
 
-    if isinstance(shiftArg, Instructions.ImmediateOperandBase):
+    if isImmediate(shiftArg):
         if shiftArg.operandSize > size8:
             raise ValueError("The immediate argument to a shift instruction cannot be larger than a byte.")
         v = shiftArg.value & 31
@@ -281,7 +294,7 @@ def makeRelativeSymbolOperand(asm, shortOffset, longOffset, arg):
         return arg.makeSymbol(asm, asm.index).makeRelative(longOffset).cast(size32)
 
 def writeCallInstruction(asm, args):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+    if len(args) != 1 or not isImmediate(args[0]):
         raise ValueError("'call' takes precisely one immediate operand.")
     asm.write([0xe8])
     asm.writeArgument(args[0].makeSymbol(asm, asm.index).makeRelative(asm.index + 4).cast(size32))
@@ -289,7 +302,7 @@ def writeCallInstruction(asm, args):
 builders["call"] = writeCallInstruction
     
 def writeJumpInstruction(asm, args):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+    if len(args) != 1 or not isImmediate(args[0]):
         raise ValueError("'jmp' takes precisely one immediate operand.")
 
     relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 5, args[0])
@@ -308,7 +321,7 @@ builders["jmp"]  = writeJumpInstruction
 ############################################################
     
 def writeConditionalJumpInstruction(asm, args, name, conditionOpCode):
-    if len(args) != 1 or not isinstance(args[0], Instructions.ImmediateOperandBase):
+    if len(args) != 1 or not isImmediate(args[0]):
         raise ValueError("'%s' takes precisely one immediate operand." % name)
 
     relOp = makeRelativeSymbolOperand(asm, asm.index + 2, asm.index + 6, args[0])
@@ -389,6 +402,9 @@ def writeMovImmediateInstruction(asm, args):
 
     memArg, immArg = args[0], args[1]
 
+    if isImmediate(memArg):
+        raise ValueError("The first argument to 'mov' may not be an immediate value.")
+
     if memArg.addressingMode == "register":
         asm.write([0xb << 4 | (int(memArg.operandSize != size8) & 0x01) << 3 | memArg.operandIndex])
     else:
@@ -409,6 +425,9 @@ builders["mov"] = defineAmbiguousInstruction(
 def writeInterruptInstruction(asm, args):
     if len(args) != 1:
         raise ValueError("'int' takes precisely one argument.")
+    if not isImmediate(args[0]):
+        raise ValueError("'int' takes an immediate argument.")
+    
     immArg = args[0].toUnsigned()
     if immArg.operandSize > size8:
         raise ValueError("'int' must take an 8-bit operand.")
@@ -426,13 +445,11 @@ def writeTestImmediateInstruction(asm, args):
     if len(args) != 2:
         raise ValueError("'test' takes precisely two operands.")
     
-    isImm = lambda x: isinstance(x, Instructions.ImmediateOperandBase)
-
     immArg, memArg = args
-    if isImm(memArg):
+    if isImmediate(memArg):
         immArg, memArg = memArg, immArg
 
-    if not isImm(immArg) or isImm(memArg):
+    if not isImmediate(immArg) or isImmediate(memArg):
         raise ValueError("'test' must take precisely one immediate operand and one memory/register operand.")
 
     if immArg.operandSize > memArg.operandSize:
@@ -458,7 +475,7 @@ builders["test"]  = defineAmbiguousInstruction(
 def writeEnterInstruction(asm, args):
     if len(args) != 2:
         raise ValueError("'enter' takes precisely two arguments.")
-    if not all(isinstance(arg, Instructions.ImmediateOperandBase) for arg in args):
+    if not all(isImmedate(arg) for arg in args):
         raise ValueError("'enter' must take two immediate arguments.")
     if args[0].operandSize > size16 or args[1].operandSize > size8:
         raise ValueError("'enter' must take a 16-bit operand and an 8-bit operand.")
@@ -490,7 +507,7 @@ builders["enter"] = defineAmbiguousArgumentCountInstruction("enter", {
 ############################################################
 
 def writeRetInstruction(asm, args):
-    if len(args) > 1 or (len(args) > 0 and args[0].operandSize > size16):
+    if len(args) > 1 or (args and args[0].operandSize > size16):
         raise ValueError("'ret' takes at most one 16-bit operand.")
 
     if len(args) == 0 or args[0].operandSize == size0:
@@ -510,10 +527,22 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
         raise ValueError("'%s' takes either two or three arguments." % name)
 
     if len(args) == 2:
+        if isImmediate(args[0]):
+            raise ValueError("The first argument to '%s' may not be immediate values." % name)
+
+        if not isImmediate(args[1]):
+            raise ValueError("The second argument to '%s' must be an immediate value." % name)
+        
         args = [args[0], args[0], args[1]] # transform `imul eax,      10`
                                            # into      `imul eax, eax, 10`
 
     regArg, memArg, immArg = args
+
+    if isImmediate(regArg) or isImmediate(memArg):
+        raise ValueError("The first two arguments to '%s' may not be immediate values." % name)
+
+    if not isImmediate(immArg):
+        raise ValueError("The third argument to '%s' must be an immediate value." % name)
 
     if regArg.addressingMode != "register":
         raise ValueError("'%s' instruction must have a register operand "
