@@ -107,28 +107,31 @@ debug = False
 jit = False
 repl = True
 output = None
+arg = None
 
 for argument in sys.argv[1:]:
-	if argument == "-d":
-		debug = True
-	elif argument == "-jit" or argument == "-j":
-		jit = True
-		repl = False
-	elif argument == "-repl" or argument == "-r":
-		jit = False
-		repl = True
-	elif argument == "-coff":
-		jit = False
-		repl = False
-		output = "a.o"
-	elif argument == "-com":
-		jit = False
-		repl = False
-		output = "a.com"
-	elif argument[0:3] == "-o:":
-		jit = False
-		repl = False
-		output = argument[3:]
+    if argument == "-d":
+        debug = True
+    elif argument == "-jit" or argument == "-j":
+        jit = True
+        repl = False
+    elif argument == "-repl" or argument == "-r":
+        jit = False
+        repl = True
+    elif argument == "-coff":
+        jit = False
+        repl = False
+        output = "a.o"
+    elif argument == "-com":
+        jit = False
+        repl = False
+        output = "a.com"
+    elif argument[0:3] == "-o:":
+        jit = False
+        repl = False
+        output = argument[3:]
+    elif argument.startswith("-arg:"):
+        arg = eval(argument[len("-arg:"):])
 
 asm = Assembler.Assembler()
 
@@ -200,7 +203,10 @@ if jit:
     asm.patchLabels()
     virtBuf.Write(System.Array[System.Byte](asm.code))
     func = libjit.JitFunction(virtBuf, getEntryPointOffset(asm))
-    print(func.Invoke[int]())
+    if arg is None:
+        print(func.Invoke[int]())
+    else:
+        print(func.Invoke[int](arg))
     func.Dispose()
 elif repl:
     asm.patchLabels()

@@ -16,8 +16,7 @@
     <Name>dfasm</Name>
     <RootNamespace>dfasm</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
-    <CommandLineArguments>
-    </CommandLineArguments>
+    <CommandLineArguments>-jit</CommandLineArguments>
     <DebugStdLib>False</DebugStdLib>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
