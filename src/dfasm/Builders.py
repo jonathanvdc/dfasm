@@ -467,7 +467,16 @@ def writeEnterInstruction(asm, args):
     asm.writeArgument(args[0].cast(size16))
     asm.writeArgument(args[1].cast(size8))
 
-builders["enter"] = writeEnterInstruction
+def defineExtendedArgumentInstruction(builder, extraArgs):
+    return lambda asm, args: builder(asm, args + extraArgs)
+
+def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
+    return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
+
+builders["enter"] = defineAmbiguousArgumentCountInstruction({
+                        1: defineExtendedArgumentInstruction(writeEnterInstruction, [Instructions.ImmediateOperand.createUnsigned(0)]),
+                        2: writeEnterInstruction
+                    })
 
 ############################################################
 ### Return instruction
@@ -530,9 +539,6 @@ def writeThreeOpImmediateInstruction(name, opCode, asm, args):
 
 def defineThreeOpImmediateInstruction(name, opCode):
     return lambda asm, args: writeThreeOpImmediateInstruction(name, opCode, asm, args)
-
-def defineAmbiguousArgumentCountInstruction(instructionBuilderDict):
-    return lambda asm, args: instructionBuilderDict[len(args)](asm, args)
 
 builders["imul"] = defineAmbiguousArgumentCountInstruction({
                      1 : defineUnaryInstruction("imul", 0xf6, 5),

@@ -11,7 +11,7 @@ fib:
     add  eax, ebx       ; Compute next Fibonacci number
     xchg ebx, eax       ; Swap eax, ebx
 
-    dec ecx             ; Decrement counter
+    dec  ecx            ; Decrement counter
 
     cmp  ecx, 0         ; Check if we're not done yet
     jg   fib
