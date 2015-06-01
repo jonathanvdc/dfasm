@@ -149,6 +149,8 @@ if sys.stdin.isatty():
         try:
             line = ""
             while line == "" or line.isspace():
+                sys.stdout.write('>>> ')
+                sys.stdout.flush()
                 line = sys.stdin.readline()
                 lineIndex += 1
         except KeyboardInterrupt:
