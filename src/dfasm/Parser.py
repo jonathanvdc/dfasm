@@ -201,12 +201,12 @@ class MemoryNode(object):
             return self.getDisplacement(operand.left) + self.getDisplacement(operand.right)
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "minus":
             return self.getDisplacement(operand.left) - self.getDisplacement(operand.right)
-        elif isinstance(operand, Instructions.RegisterOperand):
-            return 0
-        else:
+        elif not isinstance(operand, Instructions.RegisterOperand) and not isinstance(operand, Instructions.BinaryOperand):
             raise DiagnosticsException("Invalid memory operand",
-                                       "Non-immediate SIB displacements are not supported.",
-                                       self.location)
+                            "Non-immediate SIB displacements are not supported.",
+                            self.location)
+        else:
+            return 0
 
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
@@ -461,7 +461,6 @@ class IntegerDataDirective(DirectiveNodeBase):
             if not isinstance(operand, Instructions.ImmediateOperandBase):
                 raise ValueError("'.%s' directive arguments must be immediate operands."
                                  % self.typeToken)
-            val = operand.toUnsigned()
             maxSize = 2 ** (self.size.size * 8) - 1
             if not 0 <= operand.value <= maxSize:
                 raise ValueError("'.%s' directive arguments must be in the 0-%d range."
@@ -607,7 +606,7 @@ def parseCast(tokens):
     if tokens.peekNoTrivia().contents == "ptr":
         ptrToken = tokens.nextNoTrivia()
     else:
-        ptrToken = Lexer.Token("ptr", "identifier")
+        ptrToken = Lexer.Token("ptr", "identifier", typeToken.location)
     return CastNode(typeToken, ptrToken, parsePrimary(tokens))
 
 def parseLiteral(tokens):
@@ -691,7 +690,7 @@ def parseInstruction(tokens):
     if tokens.peekNoTrivia().type == "dot":
         return parseDirective(tokens, tokens.nextNoTrivia())
 
-    first = tokens.nextNoTrivia("identifier")        
+    first = tokens.nextNoTrivia("identifier")
 
     # If a colon follows the first token, this is a label.
     if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":
