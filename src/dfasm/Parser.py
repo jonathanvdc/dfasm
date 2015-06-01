@@ -1,7 +1,6 @@
 import Instructions
 import Lexer
 import Symbols
-import math
 import libdiagnostics
 from Encoding import *
 from libdiagnostics import DiagnosticsException
@@ -514,7 +513,7 @@ class DataArrayDirective(DirectiveNodeBase):
                              % (self.headerStr(), maxSize))
 
         arrElem = elem.toUnsigned().cast(self.size)
-        for i in range(arrLength):
+        for _ in range(arrLength):
             asm.writeArgument(arrElem)
 
 def parseArgument(tokens):
