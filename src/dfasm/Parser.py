@@ -463,7 +463,6 @@ class IntegerDataDirective(DirectiveNodeBase):
             if not isinstance(operand, Instructions.ImmediateOperandBase):
                 raise ValueError("'.%s' directive arguments must be immediate operands."
                                  % self.typeToken)
-            val = operand.toUnsigned()
             maxSize = 2 ** (self.size.size * 8) - 1
             if not 0 <= operand.value <= maxSize:
                 raise ValueError("'.%s' directive arguments must be in the 0-%d range."
@@ -609,7 +608,7 @@ def parseCast(tokens):
     if tokens.peekNoTrivia().contents == "ptr":
         ptrToken = tokens.nextNoTrivia()
     else:
-        ptrToken = Lexer.Token("ptr", "identifier")
+        ptrToken = Lexer.Token("ptr", "identifier", typeToken.location)
     return CastNode(typeToken, ptrToken, parsePrimary(tokens))
 
 def parseLiteral(tokens):
@@ -693,7 +692,7 @@ def parseInstruction(tokens):
     if tokens.peekNoTrivia().type == "dot":
         return parseDirective(tokens, tokens.nextNoTrivia())
 
-    first = tokens.nextNoTrivia("identifier")        
+    first = tokens.nextNoTrivia("identifier")
 
     # If a colon follows the first token, this is a label.
     if not tokens.isTrivia() and tokens.peekNoTrivia().type == "colon":
