@@ -203,12 +203,12 @@ class MemoryNode(object):
             return self.getDisplacement(operand.left) + self.getDisplacement(operand.right)
         elif isinstance(operand, Instructions.BinaryOperand) and operand.op == "minus":
             return self.getDisplacement(operand.left) - self.getDisplacement(operand.right)
-        elif isinstance(operand, Instructions.RegisterOperand):
-            return 0
-        else:
+        elif not isinstance(operand, Instructions.RegisterOperand) and not isinstance(operand, Instructions.BinaryOperand):
             raise DiagnosticsException("Invalid memory operand",
-                                       "Non-immediate SIB displacements are not supported.",
-                                       self.location)
+                            "Non-immediate SIB displacements are not supported.",
+                            self.location)
+        else:
+            return 0
 
     def getIndexOperands(self, operand):
         """ Return a list of tuples (r, s), where r is a register and s is the
