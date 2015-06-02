@@ -640,6 +640,9 @@ def parsePrimary(tokens):
     peek = tokens.peekNoTrivia()
     if peek.type == "minus":
         return NegateNode(tokens.nextNoTrivia(), parsePrimary(tokens))
+    elif peek.type == "plus":
+        tokens.nextNoTrivia()
+        return parsePrimary(tokens)
     elif peek.type == "lparen":
         return parseParentheses(tokens)
     elif peek.type == "lbracket":
