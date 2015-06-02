@@ -8,7 +8,7 @@ The following tools are required for dfasm to be run.
  * [IronPython 2.7](http://ironpython.net/)
  * A .Net Framework 4.5 implementation
    * .Net Framework 4.5 on Windows (present by default on recent versions of Windows)
-   * [Mono](http://www.mono-project.com/download/#download-lin) on Linux or Mac OS
+   * [Mono](http://www.mono-project.com/download/#download-lin) on Linux or Mac OS X
  
 ## Invoking dfasm
 You can open an interactive dfasm REPL prompt from the command line with:
