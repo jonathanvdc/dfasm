@@ -1,0 +1,5 @@
+http://www.c-jump.com/CIS77/CPU/x86/lecture.html#X77_0100_sib_byte_layout
+http://blog.bittercoder.com/2006/10/01/the-final-solution-for-generic-ironpython-delegates/
+http://www.codeproject.com/Articles/705281/An-x-assembler-with-register-allocation
+http://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part
+http://pdos.csail.mit.edu/6.828/2006/readings/i386/c17.htm
