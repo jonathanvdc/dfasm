@@ -103,6 +103,13 @@ def getEntryPoint(asm):
 def getEntryPointOffset(asm):
     return getEntryPoint(asm).offset if getEntryPoint(asm) != None else 0
 
+def processNode(asm, node, doc):
+    try:
+        asm.process(node)
+    except ValueError as ex:
+        wholeLine = libdiagnostics.SourceLocation(doc, 0, doc.CharacterCount)
+        raise DiagnosticsException('Invalid', str(ex), wholeLine)
+
 debug = False
 jit = False
 repl = True
@@ -169,11 +176,7 @@ if sys.stdin.isatty():
 
         for item in instrs:
             try:
-                try:
-                    asm.process(item)
-                except ValueError as ex:
-                    wholeLine = libdiagnostics.SourceLocation(doc, 0, len(line))
-                    raise DiagnosticsException('Invalid', str(ex), wholeLine)
+                processNode(asm, item, doc)
             except DiagnosticsException as ex:
                 log.LogError(ex.Entry)
             
@@ -198,7 +201,7 @@ else:
         instrs = parseAllInstructions(TokenStream(lexed, doc, log))
         for item in instrs:
             try:
-                asm.process(item)
+                processNode(asm, item, doc)
             except libdiagnostics.DiagnosticsException as ex:
                 log.LogError(ex.Entry)
 
